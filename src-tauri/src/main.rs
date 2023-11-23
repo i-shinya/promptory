@@ -17,6 +17,7 @@ mod usecase;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    println!("MODE: {}", env::var("MODE").unwrap_or_default()
 
     let db_file_path = get_db_path_by_os();
     make_parent_dir_if_not_exists(&db_file_path);
