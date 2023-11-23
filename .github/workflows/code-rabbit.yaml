@@ -13,6 +13,8 @@ on:
       - release
   pull_request_review_comment:
     types: [ created ]
+  issue_comment: # issueとpull_requestの両方のコメントに反応する
+    types: [ created ]
 
 concurrency:
   group: ${{ github.repository }}-${{ github.event.number || github.head_ref || github.sha }}-${{ github.workflow }}-${{ github.event_name == 'pull_request_review_comment' && 'pr_comment' || 'pr' }}
@@ -24,7 +26,13 @@ env:
 jobs:
   review:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review' )) || (github.event_name == 'pull_request')
+    ###
+    # 以下の条件のいずれかに当てはまる場合にのみ実行する
+    # - eventがissue_commentで、コメントにrabbit-reviewが含まれている場合、かつissueがpull_requestの場合
+    # - eventがpull_request_review_commentで、コメントにrabbit-reviewが含まれている場合
+    # - eventがpull_requestの場合
+    ###
+    if: (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'rabbit-review') && github.event.issue.pull_request) || (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review' )) || (github.event_name == 'pull_request')
     timeout-minutes: 15
     steps:
       - uses: coderabbitai/openai-pr-reviewer@latest
