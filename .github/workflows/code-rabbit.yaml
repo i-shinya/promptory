@@ -24,7 +24,7 @@ env:
 jobs:
   review:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '[/rabbit-review]' )) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
+    if: (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review' )) || (github.event_name == 'pull_request')
     timeout-minutes: 15
     steps:
       - uses: coderabbitai/openai-pr-reviewer@latest
