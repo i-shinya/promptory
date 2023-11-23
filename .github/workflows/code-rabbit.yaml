@@ -19,13 +19,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
 
 env:
-  RUN_TRIGGER_COMMENT: '[/rabbit-review]' # workflow内で定数が定義できないため定数的にenvを利用している
   GPT_MODEL: gpt-4-1106-preview
 
 jobs:
   review:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, ${{ env.RUN_TRIGGER_COMMENT }} )) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
+    if: (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '[/rabbit-review]' )) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
     timeout-minutes: 15
     steps:
       - uses: coderabbitai/openai-pr-reviewer@latest
