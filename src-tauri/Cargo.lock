@@ -3286,6 +3286,7 @@ version = "0.0.0"
 dependencies = [
  "async-openai",
  "async-std",
+ "async-trait",
  "dotenv",
  "futures",
  "sea-orm",
@@ -3294,6 +3295,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "thiserror",
  "tokio",
 ]
 
