@@ -1,49 +1,40 @@
-name: code-rabbit
+name: ai-pr-reviewer
 
 permissions:
   contents: read
   pull-requests: write
 
 on:
-  workflow_dispatch:
   pull_request:
-    types: [opened, synchronize]
-    branches:
-      - 'feature/**'
+    types: [opened]
+    branches-ignore:
+      - master
+      - main
   pull_request_review_comment:
-    types: [ created ]
-  issue_comment: # issueとpull_requestの両方のコメントに反応する
-    types: [ created ]
+    types: [created]
+  issue_comment:
+    types: [created]
 
 concurrency:
   group: ${{ github.repository }}-${{ github.event.number || github.head_ref || github.sha }}-${{ github.workflow }}-${{ github.event_name == 'pull_request_review_comment' && 'pr_comment' || 'pr' }}
   cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
 
-env:
-  GPT_MODEL: gpt-4-1106-preview
-
 jobs:
   review:
     runs-on: ubuntu-latest
-    ###
-    # 以下の条件のいずれかに当てはまる場合にのみ実行する
-    # - eventがissue_commentで、コメントにrabbit-reviewが含まれている場合、かつissueがpull_requestの場合
-    # - eventがpull_request_review_commentで、コメントにrabbit-reviewが含まれている場合
-    # - eventがpull_requestの場合
-    ###
-    if: (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'rabbit-review') && github.event.issue.pull_request) || (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review' )) || (github.event_name == 'pull_request')
+    if: (github.event_name == 'issue_comment' && contains(github.event.comment.body, '[run review]') && github.event.issue.pull_request) ||　(github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '[run review]')) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
     timeout-minutes: 15
     steps:
       - uses: coderabbitai/openai-pr-reviewer@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # secretsに設定すること
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           debug: false
           review_simple_changes: false
           review_comment_lgtm: false
-          openai_light_model: ${{ env.GPT_MODEL }}
-          openai_heavy_model: ${{ env.GPT_MODEL }}
+          openai_light_model: gpt-4 # 好みで変更
+          openai_heavy_model: gpt-4 # 好みで変更
           openai_timeout_ms: 900000 # 15分.
           language: ja-JP
           path_filters: |
