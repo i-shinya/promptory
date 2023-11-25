@@ -10,9 +10,6 @@ on:
     types: [opened, synchronize]
     branches:
       - 'feature/**'
-    branches-ignore:
-      - main
-      - release
   pull_request_review_comment:
     types: [ created ]
   issue_comment: # issueとpull_requestの両方のコメントに反応する
