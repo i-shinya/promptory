@@ -3286,14 +3286,18 @@ version = "0.0.0"
 dependencies = [
  "async-openai",
  "async-std",
+ "async-trait",
  "dotenv",
  "futures",
+ "log",
+ "once_cell",
  "sea-orm",
  "sea-orm-migration",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "thiserror",
  "tokio",
 ]
 
