@@ -16,6 +16,10 @@ async fn main() {
     dotenv().ok();
 
     let db_file_path = common::dir::get_db_path_by_os();
+    if db_file_path.is_err() {
+        panic!("Cannot get db path");
+    }
+    let db_file_path = db_file_path.unwrap();
     common::dir::make_parent_dir_if_not_exists(&db_file_path);
 
     // database.rcがない場合は?mode=rwcが必要そう[参考](https://github.com/SeaQL/sea-orm/discussions/283#discussioncomment-1564939)
@@ -26,7 +30,6 @@ async fn main() {
     let _schema_manager = SchemaManager::new(&db);
     let res = migration::migrator::Migrator::refresh(&db).await;
     if let Err(err) = res {
-        println!("Migration error: {}", err);
         panic!("Migration error: {}", err);
     }
 
