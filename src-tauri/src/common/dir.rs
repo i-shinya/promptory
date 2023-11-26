@@ -60,10 +60,17 @@ pub fn get_db_path_by_os() -> Result<String, ApplicationError> {
 }
 
 /// ファイルの親ディレクトリが存在しない場合は再起的に作成する
-pub fn make_parent_dir_if_not_exists(path: &str) {
+pub fn make_parent_dir_if_not_exists(path: &str) -> Result<(), ApplicationError> {
     let paths = PathBuf::from(path);
     let parent_dir = paths.parent().unwrap();
     if !parent_dir.exists() {
-        fs::create_dir_all(parent_dir).map_err(|e| format!("Failed to create directory: {}", e))?;
+        let res = fs::create_dir_all(parent_dir);
+        if res.is_err() {
+            return Err(UnknownError(format!(
+                "Cannot create parent dir: {}",
+                parent_dir.to_str().unwrap()
+            )));
+        }
     }
+    Ok(())
 }

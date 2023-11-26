@@ -20,7 +20,10 @@ async fn main() {
         panic!("Cannot get db path");
     }
     let db_file_path = db_file_path.unwrap();
-    common::dir::make_parent_dir_if_not_exists(&db_file_path);
+    let make_dir_result = common::dir::make_parent_dir_if_not_exists(&db_file_path);
+    if make_dir_result.is_err() {
+        panic!("Cannot make parent dir: {}", make_dir_result.err().unwrap());
+    }
 
     // database.rcがない場合は?mode=rwcが必要そう[参考](https://github.com/SeaQL/sea-orm/discussions/283#discussioncomment-1564939)
     let db_path = format!("sqlite:{}?mode=rwc", &db_file_path);
