@@ -4,7 +4,7 @@ use std::{env, fs};
 /// osを元にappデータの保存パスを取得
 pub fn get_app_home_path() -> String {
     // 開発モードの場合はproject_root/app
-    if env::var("MODE").unwrap_or_default() == "dev" {
+    if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
         println!("dev mode");
         let path = PathBuf::from("../data");
         return path.to_str().unwrap().to_string();
