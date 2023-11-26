@@ -3289,6 +3289,8 @@ dependencies = [
  "async-trait",
  "dotenv",
  "futures",
+ "log",
+ "once_cell",
  "sea-orm",
  "sea-orm-migration",
  "serde",

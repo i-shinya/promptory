@@ -10,7 +10,7 @@ pub struct ChatRequest {
 }
 
 #[async_trait]
-pub trait Chat {
+pub trait Chat: Send + Sync {
     async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError>;
 }
 
@@ -39,7 +39,7 @@ where
         match self.chat_client.do_chat(&settings).await {
             Ok(res) => Ok(res),
             Err(err) => {
-                println!("post_chat error: {}", err);
+                log::error!("post_chat error: {}", err);
                 Err(err)
             }
         }

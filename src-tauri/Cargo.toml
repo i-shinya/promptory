@@ -25,6 +25,8 @@ async-std = {version = "1.12.0", features = ["attributes"] }
 dotenv = "0.15.0"
 async-trait = "0.1.74"
 thiserror = "1.0.50"
+once_cell = "1.18.0"
+log = "0.4.20"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

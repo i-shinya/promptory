@@ -36,10 +36,7 @@ async fn main() {
     let openai_client = infra::core::openai::new_client();
     let chat = infra::chat::new(openai_client);
     let chat_usecase = usecase::chat::new(chat);
-
-    unsafe {
-        controller::chat::init(chat_usecase);
-    }
+    controller::chat::init(chat_usecase);
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![

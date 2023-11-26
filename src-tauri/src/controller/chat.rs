@@ -1,3 +1,5 @@
+use once_cell::sync::OnceCell;
+
 use crate::usecase;
 
 struct Controller {
@@ -5,16 +7,16 @@ struct Controller {
 }
 
 /// controllerの初期化
-pub unsafe fn init(usecase: Box<dyn usecase::chat::Chat>) {
-    CONTROLLER = Some(Controller { chat: usecase });
+pub fn init(usecase: Box<dyn usecase::chat::Chat>) {
+    let _ = CONTROLLER.set(Controller { chat: usecase });
 }
 
 /// usecaseを保持するためのstruct
 /// tauriコマンドはtraitやstruct内に定義できないようなのでこのようにしています
-static mut CONTROLLER: Option<Controller> = None;
+static CONTROLLER: OnceCell<Controller> = OnceCell::new();
 
 fn get_controller() -> &'static Controller {
-    unsafe { CONTROLLER.as_ref().unwrap() }
+    CONTROLLER.get().expect("Controller is not initialized")
 }
 
 /// チャットを実行する

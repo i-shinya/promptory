@@ -7,7 +7,7 @@ use async_trait::async_trait;
 /// open aiのclientのラッパーtrait
 /// crate内の実装がstructなのでテストでモックを使うための対応
 #[async_trait]
-pub trait AIClient: Sync {
+pub trait AIClient: Send + Sync {
     async fn create_chat(
         &self,
         request: CreateChatCompletionRequest,
