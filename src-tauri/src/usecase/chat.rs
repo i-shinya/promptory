@@ -1,3 +1,4 @@
+use crate::common::errors::ApplicationError;
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -15,7 +16,7 @@ pub struct ChatRequest {
 
 #[async_trait]
 pub trait Chat: Send + Sync {
-    async fn post_chat(&self, request: ChatRequest) -> Result<String, String>;
+    async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError>;
 }
 
 #[derive(Clone, Debug)]
@@ -35,7 +36,7 @@ impl<T> Chat for ChatUsecase<T>
 where
     T: AIChat + ?Sized,
 {
-    async fn post_chat(&self, request: ChatRequest) -> Result<String, String> {
+    async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
         let settings = crate::domain::chat::ChatSettings {
             user_prompt: request.user_prompt.clone(),
             system_prompt: request.system_prompt.clone(),
@@ -47,7 +48,7 @@ where
             Ok(res) => Ok(res),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
-                return Err(format!("Error: {}", err));
+                return Err(err);
             }
         }
         // TODO chatの実行履歴を保存する

@@ -22,5 +22,9 @@ fn get_controller() -> &'static Controller {
 /// チャットを実行する
 #[tauri::command]
 pub async fn post_chat(request: usecase::chat::ChatRequest) -> Result<String, String> {
-    log_ipc!(get_controller().chat, post_chat, request)
+    let res = log_ipc!(get_controller().chat, post_chat, request);
+    match res {
+        Ok(res) => Ok(res),
+        Err(err) => Err(err.to_string()),
+    }
 }
