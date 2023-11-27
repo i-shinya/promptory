@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::env;
+
 use dotenv::dotenv;
 use sea_orm_migration::prelude::*;
 
@@ -14,6 +16,7 @@ mod usecase;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    common::logger::init_logger();
 
     let db_file_path = common::dir::get_db_path_by_os();
     if db_file_path.is_err() {
@@ -30,11 +33,20 @@ async fn main() {
     let db = sea_orm::Database::connect(db_path).await.unwrap();
 
     // マイグレーションを実行
-    let _schema_manager = SchemaManager::new(&db);
-    let res = migration::migrator::Migrator::refresh(&db).await;
-    if let Err(err) = res {
-        panic!("Migration error: {}", err);
+    if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
+        let res = migration::migrator::Migrator::refresh(&db).await;
+        if let Err(err) = res {
+            panic!("Migration error: {}", err);
+        }
+    } else {
+        let res = migration::migrator::Migrator::up(&db, None).await;
+        if let Err(err) = res {
+            panic!("Migration error: {}", err);
+        }
     }
+
+    // TODO DB操作を追加するときにinfra層に移動させる（たぶん）
+    let _schema_manager = SchemaManager::new(&db);
 
     let openai_client = infra::core::openai::new_client();
     let chat = infra::chat::new(openai_client);

@@ -6,6 +6,9 @@ use crate::common::errors::ApplicationError;
 pub struct ChatSettings {
     pub user_prompt: String,
     pub system_prompt: String,
+    pub temperature: f32,
+    pub model: String,
+    pub response_format: Option<String>,
 }
 
 // traitでasyncが使えない問題の対処

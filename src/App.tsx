@@ -1,51 +1,80 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+interface ChatRequest {
+  userPrompt: string;
+  systemPrompt: string;
+  model: string;
+  temperature: number;
+  responseFormat?: string;
+}
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
+function App() {
+  const [answer, setAnswer] = useState("");
+  const [request, setRequest] = useState<ChatRequest>({
+    userPrompt: "enter user prompt...",
+    systemPrompt: "enter system prompt...",
+    model: "gpt-4-1106-preview",
+    temperature: 0,
+  });
+
+  async function postChat() {
+    setAnswer(await invoke("post_chat", { request }));
   }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRequest({
+      ...request,
+      [e.target.name]: e.target.name === "temperature" ? Number(e.target.value) : e.target.value,
+    });
+  };
+
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
       <form
-        className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          greet();
+          postChat();
         }}
       >
         <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+          className="row"
+          name="userPrompt"
+          value={request.userPrompt}
+          onChange={handleChange}
+          placeholder="Enter user prompt..."
         />
-        <button type="submit">Greet</button>
+        <input
+          className="row"
+          name="systemPrompt"
+          value={request.systemPrompt}
+          onChange={handleChange}
+          placeholder="Enter system prompt..."
+        />
+        <input
+          className="row"
+          name="model"
+          value={request.model}
+          onChange={handleChange}
+          placeholder="Enter model..."
+        />
+        <input
+          className="row"
+          name="temperature"
+          type="number"
+          value={request.temperature}
+          onChange={handleChange}
+          placeholder="Enter temperature..."
+          min="0"
+          max="1"
+          step="0.1"
+        />
+        <button type="submit">Submit</button>
       </form>
 
-      <p>{greetMsg}</p>
+      <p>{answer}</p>
     </div>
   );
 }
