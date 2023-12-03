@@ -65,10 +65,15 @@ pub fn make_parent_dir_if_not_exists(path: &str) -> Result<(), ApplicationError>
     let parent_dir = paths.parent().unwrap();
     if !parent_dir.exists() {
         let res = fs::create_dir_all(parent_dir);
-        if res.is_err() {
-            return Err(UnknownError(format!(
-                "Cannot create parent dir: {}",
-                parent_dir.to_str().unwrap()
+        if let Err(e) = res {
+            return Err(ApplicationError::UnknownError(format!(
+                "Cannot create parent dir '{}': {}",
+                parent_dir
+                    .to_str()
+                    .ok_or_else(|| ApplicationError::UnknownError(
+                        "Failed to convert path to string.".to_string()
+                    ))?,
+                e
             )));
         }
     }

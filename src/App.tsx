@@ -1,42 +1,50 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
-import "./App.css";
+import { useState } from 'react'
+import { invoke } from '@tauri-apps/api/tauri'
+import './App.css'
 
 interface ChatRequest {
-  userPrompt: string;
-  systemPrompt: string;
-  model: string;
-  temperature: number;
-  responseFormat?: string;
+  userPrompt: string
+  systemPrompt: string
+  model: string
+  temperature: number
+  responseFormat?: string
 }
 
 function App() {
-  const [answer, setAnswer] = useState("");
+  const [answer, setAnswer] = useState('')
   const [request, setRequest] = useState<ChatRequest>({
-    userPrompt: "enter user prompt...",
-    systemPrompt: "enter system prompt...",
-    model: "gpt-4-1106-preview",
+    userPrompt: 'enter user prompt...',
+    systemPrompt: 'enter system prompt...',
+    model: 'gpt-4-1106-preview',
     temperature: 0,
-  });
+  })
 
   async function postChat() {
-    setAnswer(await invoke("post_chat", { request }));
+    try {
+      const response = await invoke('post_chat', { request })
+      setAnswer(response as string)
+    } catch (error) {
+      console.error('Failed to post chat:', error)
+      // 適切なエラーメッセージをユーザーに表示するための処理をここに追加する
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRequest({
       ...request,
-      [e.target.name]: e.target.name === "temperature" ? Number(e.target.value) : e.target.value,
-    });
-  };
-
+      [e.target.name]:
+        e.target.name === 'temperature'
+          ? Number(e.target.value)
+          : e.target.value,
+    })
+  }
 
   return (
     <div className="container">
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          postChat();
+          e.preventDefault()
+          postChat()
         }}
       >
         <input
@@ -76,7 +84,7 @@ function App() {
 
       <p>{answer}</p>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

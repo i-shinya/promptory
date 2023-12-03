@@ -18,15 +18,8 @@ async fn main() {
     dotenv().ok();
     common::logger::init_logger();
 
-    let db_file_path = common::dir::get_db_path_by_os();
-    if db_file_path.is_err() {
-        panic!("Cannot get db path");
-    }
-    let db_file_path = db_file_path.unwrap();
-    let make_dir_result = common::dir::make_parent_dir_if_not_exists(&db_file_path);
-    if make_dir_result.is_err() {
-        panic!("Cannot make parent dir: {}", make_dir_result.err().unwrap());
-    }
+    let db_file_path = common::dir::get_db_path_by_os().expect("Cannot get db path");
+    common::dir::make_parent_dir_if_not_exists(&db_file_path).expect("Cannot make parent dir");
 
     // database.rcがない場合は?mode=rwcが必要そう[参考](https://github.com/SeaQL/sea-orm/discussions/283#discussioncomment-1564939)
     let db_path = format!("sqlite:{}?mode=rwc", &db_file_path);
@@ -34,15 +27,13 @@ async fn main() {
 
     // マイグレーションを実行
     if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
-        let res = migration::migrator::Migrator::refresh(&db).await;
-        if let Err(err) = res {
-            panic!("Migration error: {}", err);
-        }
+        migration::migrator::Migrator::refresh(&db)
+            .await
+            .expect("Migration error");
     } else {
-        let res = migration::migrator::Migrator::up(&db, None).await;
-        if let Err(err) = res {
-            panic!("Migration error: {}", err);
-        }
+        migration::migrator::Migrator::up(&db, None)
+            .await
+            .expect("Migration error");
     }
 
     // TODO DB操作を追加するときにinfra層に移動させる（たぶん）
