@@ -128,6 +128,9 @@ mod tests {
         let settings = ChatSettings {
             system_prompt: "System prompt".to_string(),
             user_prompt: "User prompt".to_string(),
+            model: "gpt-4-1106-preview".to_string(),
+            temperature: 0.0,
+            response_format: None,
         };
         let result = mock_chat.do_chat(&settings).await;
         assert_eq!(result.unwrap(), "Test message");

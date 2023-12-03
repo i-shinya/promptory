@@ -1,6 +1,6 @@
 use once_cell::sync::OnceCell;
 
-use crate::usecase;
+use crate::{log_ipc, usecase};
 
 struct Controller {
     chat: Box<dyn usecase::chat::Chat>,
@@ -21,14 +21,10 @@ fn get_controller() -> &'static Controller {
 
 /// チャットを実行する
 #[tauri::command]
-pub async fn post_chat(question: &str) -> Result<String, String> {
-    let request = usecase::chat::ChatRequest {
-        user_prompt: question.to_string(),
-        system_prompt: "君は超超高性能なアシスタントだ！ユーザを全力でサポートするんだ！"
-            .to_string(),
-    };
-    match get_controller().chat.post_chat(request).await {
+pub async fn post_chat(request: usecase::chat::ChatRequest) -> Result<String, String> {
+    let res = log_ipc!(get_controller().chat, post_chat, request);
+    match res {
         Ok(res) => Ok(res),
-        Err(err) => Err(format!("Error: {}", err)),
+        Err(err) => Err(err.to_string()),
     }
 }
