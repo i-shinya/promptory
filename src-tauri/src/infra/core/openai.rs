@@ -15,13 +15,8 @@ pub trait AIClient: Send + Sync {
 }
 
 #[derive(Clone, Debug)]
-struct OpenAIClient {
+pub struct OpenAIClient {
     client: Client<OpenAIConfig>,
-}
-
-pub fn new_client() -> Box<dyn AIClient> {
-    let client = Client::new();
-    Box::new(OpenAIClient { client })
 }
 
 #[async_trait]
@@ -31,5 +26,12 @@ impl AIClient for OpenAIClient {
         request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
         self.client.chat().create(request).await
+    }
+}
+
+impl OpenAIClient {
+    pub fn new() -> Self {
+        let client = Client::new();
+        OpenAIClient { client }
     }
 }

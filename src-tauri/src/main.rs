@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::env;
+use std::sync::Arc;
 
 use dotenv::dotenv;
 use sea_orm_migration::prelude::*;
@@ -21,28 +22,27 @@ async fn main() {
     let db_file_path = common::dir::get_db_path_by_os().expect("Cannot get db path");
     common::dir::make_parent_dir_if_not_exists(&db_file_path).expect("Cannot make parent dir");
 
-    // database.rcがない場合は?mode=rwcが必要そう[参考](https://github.com/SeaQL/sea-orm/discussions/283#discussioncomment-1564939)
-    let db_path = format!("sqlite:{}?mode=rwc", &db_file_path);
-    let db = sea_orm::Database::connect(db_path).await.unwrap();
+    let db = infra::core::seaorm::new(&db_file_path)
+        .await
+        .expect("Cannot connect to DB");
+    let db = Arc::new(db);
 
     // マイグレーションを実行
     if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
-        migration::migrator::Migrator::refresh(&db)
+        migration::migrator::Migrator::refresh(db.as_ref())
             .await
             .expect("Migration error");
     } else {
-        migration::migrator::Migrator::up(&db, None)
+        migration::migrator::Migrator::up(db.as_ref(), None)
             .await
             .expect("Migration error");
     }
 
-    // TODO DB操作を追加するときにinfra層に移動させる（たぶん）
-    let _schema_manager = SchemaManager::new(&db);
-
-    let openai_client = infra::core::openai::new_client();
-    let chat = infra::chat::new(openai_client);
-    let chat_usecase = usecase::chat::new(chat);
-    controller::chat::init(chat_usecase);
+    let openai_client = infra::core::openai::OpenAIClient::new();
+    let chat = infra::chat::OpenAIChat::new(openai_client);
+    let settings_repository = infra::repository::settings::SettingsRepositoryImpl::new(db);
+    let chat_usecase = usecase::chat::ChatUsecase::new(chat, settings_repository);
+    controller::chat::Controller::init(chat_usecase);
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![

@@ -19,13 +19,13 @@ function App() {
     temperature: 0,
   })
 
-  async function postChat() {
+  const postChat = async () => {
     try {
       const response = await invoke('post_chat', { request })
       setAnswer(response as string)
     } catch (error) {
+      // TODO handler error
       console.error('Failed to post chat:', error)
-      // 適切なエラーメッセージをユーザーに表示するための処理をここに追加する
     }
   }
 

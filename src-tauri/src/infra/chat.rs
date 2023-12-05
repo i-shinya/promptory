@@ -9,21 +9,17 @@ use crate::domain::chat::{AIChat, ChatSettings};
 use crate::infra::core::openai::AIClient;
 
 #[derive(Clone, Debug)]
-struct OpenAIChat<T>
+pub struct OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
-    client: Box<T>,
-}
-
-pub fn new(client: Box<dyn AIClient>) -> Box<dyn AIChat> {
-    Box::new(OpenAIChat { client })
+    client: T,
 }
 
 #[async_trait]
 impl<T> AIChat for OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
     async fn do_chat(&self, settings: &ChatSettings) -> Result<String, ApplicationError> {
         let req = CreateChatCompletionRequestArgs::default()
@@ -50,8 +46,12 @@ where
 
 impl<T> OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
+    pub fn new(client: T) -> Self {
+        OpenAIChat { client }
+    }
+
     fn build_messages(&self, settings: ChatSettings) -> Vec<ChatCompletionRequestMessage> {
         let system_message = ChatCompletionRequestSystemMessageArgs::default()
             .content(settings.system_prompt)
@@ -123,9 +123,10 @@ mod tests {
     #[tokio::test]
     async fn test_do_chat() {
         let mock_chat = OpenAIChat {
-            client: Box::new(MockOpenAIClient),
+            client: MockOpenAIClient,
         };
         let settings = ChatSettings {
+            id: 0,
             system_prompt: "System prompt".to_string(),
             user_prompt: "User prompt".to_string(),
             model: "gpt-4-1106-preview".to_string(),

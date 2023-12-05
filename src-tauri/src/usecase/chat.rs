@@ -1,8 +1,9 @@
-use crate::common::errors::ApplicationError;
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use crate::domain::chat::AIChat;
+use crate::common::errors::ApplicationError;
+use crate::domain::chat::{AIChat, ChatSettings};
+use crate::domain::settings::SettingsRepository;
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
@@ -20,38 +21,61 @@ pub trait Chat: Send + Sync {
 }
 
 #[derive(Clone, Debug)]
-struct ChatUsecase<T>
+pub struct ChatUsecase<T, R>
 where
-    T: AIChat + ?Sized,
+    T: AIChat,
+    R: SettingsRepository,
 {
-    chat_client: Box<T>,
-}
-
-pub fn new(chat: Box<dyn AIChat>) -> Box<dyn Chat> {
-    Box::new(ChatUsecase { chat_client: chat })
+    ai_chat: T,
+    settings_repository: R,
 }
 
 #[async_trait]
-impl<T> Chat for ChatUsecase<T>
+impl<T, R> Chat for ChatUsecase<T, R>
 where
-    T: AIChat + ?Sized,
+    T: AIChat,
+    R: SettingsRepository,
 {
     async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
-        let settings = crate::domain::chat::ChatSettings {
+        let settings = ChatSettings {
+            id: 0,
             user_prompt: request.user_prompt.clone(),
             system_prompt: request.system_prompt.clone(),
             model: request.model.clone(),
             temperature: request.temperature,
             response_format: request.response_format.clone(),
         };
-        match self.chat_client.do_chat(&settings).await {
-            Ok(res) => Ok(res),
+        let res = self.ai_chat.do_chat(&settings).await;
+        if let Err(err) = res {
+            log::error!("post_chat error: {}", err);
+            return Err(err);
+        }
+        let answer = res.unwrap();
+
+        let res = self
+            .settings_repository
+            .create_settings("title", "api_type")
+            .await;
+        match res {
+            Ok(_) => Ok(answer),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
-                return Err(err);
+                Err(err)
             }
         }
-        // TODO chatの実行履歴を保存する
+    }
+}
+
+impl<T, R> ChatUsecase<T, R>
+where
+    T: AIChat,
+    R: SettingsRepository,
+{
+    pub fn new(chat: T, setting_repository: R) -> Self {
+        ChatUsecase {
+            ai_chat: chat,
+            settings_repository: setting_repository,
+        }
     }
 }
 
@@ -65,11 +89,16 @@ mod tests {
 
     use crate::common::errors::ApplicationError;
     use crate::domain::chat::ChatSettings;
+    use crate::domain::settings::SettingsModel;
 
     use super::*;
 
     struct MockAIChat {
         expected_prompt: Arc<Mutex<String>>,
+    }
+
+    struct MockSettingsRepository {
+        // TODO テスト用のフィールドを追加
     }
 
     #[async_trait]
@@ -81,14 +110,31 @@ mod tests {
         }
     }
 
+    #[async_trait]
+    impl SettingsRepository for MockSettingsRepository {
+        async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
+            Ok(Vec::new())
+        }
+
+        async fn create_settings(
+            &self,
+            title: &str,
+            api_type: &str,
+        ) -> Result<i32, ApplicationError> {
+            Ok(0)
+        }
+    }
+
     #[tokio::test]
     async fn test_post_chat() {
         let expected_prompt = "Test prompt".to_string();
         let mock_chat = MockAIChat {
             expected_prompt: Arc::new(Mutex::new(expected_prompt.clone())),
         };
+        let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            chat_client: Box::new(mock_chat),
+            ai_chat: mock_chat,
+            settings_repository: mock_settings_repository,
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,

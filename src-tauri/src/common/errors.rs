@@ -1,4 +1,5 @@
 use async_openai::error::OpenAIError;
+use sea_orm::DbErr;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApplicationError {
@@ -8,4 +9,6 @@ pub enum ApplicationError {
     EmptyResult,
     #[error("http error: {0}")]
     OpenAPIError(#[from] OpenAIError),
+    #[error("db error: {0}")]
+    DBError(#[from] DbErr),
 }
