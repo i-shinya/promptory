@@ -6,7 +6,7 @@ pub enum ApplicationError {
     UnknownError(String),
     #[error("result is empty")]
     EmptyResult,
-    #[error("open api error: {0}")]
+    #[error("openai api error: {0}")]
     OpenAPIError(String),
     #[error("db error: {0}")]
     DBError(#[from] DbErr),

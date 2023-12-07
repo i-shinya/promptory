@@ -5,16 +5,7 @@ use crate::common::errors::ApplicationError;
 use crate::common::errors::ApplicationError::UnknownError;
 
 /// osを元にappデータの保存パスを取得
-pub fn get_app_home_path(is_test: bool) -> Result<String, ApplicationError> {
-    // テスト用
-    if is_test {
-        let path = PathBuf::from("../data/test");
-        return match path.to_str() {
-            Some(path) => Ok(path.to_string()),
-            None => Err(UnknownError("Cannot get app home path".to_string())),
-        };
-    }
-
+pub fn get_app_home_path() -> Result<String, ApplicationError> {
     // 開発モードの場合はproject_root/app
     if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
         println!("dev mode");
@@ -48,13 +39,18 @@ pub fn get_app_home_path(is_test: bool) -> Result<String, ApplicationError> {
     };
 }
 
+pub fn get_test_home_path() -> Result<String, ApplicationError> {
+    // テスト用
+    let path = PathBuf::from("../data/test");
+    return match path.to_str() {
+        Some(path) => Ok(path.to_string()),
+        None => Err(UnknownError("Cannot get app home path".to_string())),
+    };
+}
+
 /// osを元にdbのパスを取得
 pub fn get_db_path_by_os() -> Result<String, ApplicationError> {
-    let app_home_dir = get_app_home_path(false);
-    if app_home_dir.is_err() {
-        return Err(app_home_dir.err().unwrap());
-    }
-    let app_home_dir = app_home_dir.unwrap();
+    let app_home_dir = get_app_home_path()?;
     let mut app_dir = PathBuf::from(app_home_dir);
     if cfg!(target_os = "windows") {
         app_dir.push("db\\database.db");

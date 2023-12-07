@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
 
 use crate::common::errors::ApplicationError;
-use crate::common::errors::ApplicationError::DBError;
 use crate::domain::settings::{SettingsModel, SettingsRepository};
 use crate::infra::repository::entities::prelude::Settings;
 use crate::infra::repository::entities::settings;
@@ -19,18 +18,15 @@ impl SettingsRepository for SettingsRepositoryImpl {
     async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
         let settings = Settings::find().all(self.db.as_ref()).await;
         match settings {
-            Ok(setting) => {
-                let mut result = Vec::new();
-                for s in setting {
-                    result.push(SettingsModel {
-                        id: s.id,
-                        title: s.title,
-                        api_type: s.api_type,
-                    });
-                }
-                Ok(result)
-            }
-            Err(err) => Err(DBError(err)),
+            Ok(setting) => Ok(setting
+                .into_iter()
+                .map(|s| SettingsModel {
+                    id: s.id,
+                    title: s.title,
+                    api_type: s.api_type,
+                })
+                .collect()),
+            Err(err) => Err(ApplicationError::DBError(err)),
         }
     }
 
@@ -40,7 +36,10 @@ impl SettingsRepository for SettingsRepositoryImpl {
             title: ActiveValue::Set(title.to_string()),
             api_type: ActiveValue::Set(api_type.to_string()),
         };
-        let res = Settings::insert(setting).exec(self.db.as_ref()).await?;
+        let res = Settings::insert(setting)
+            .exec(self.db.as_ref())
+            .await
+            .map_err(ApplicationError::DBError)?;
         Ok(res.last_insert_id)
     }
 }
@@ -65,7 +64,7 @@ mod tests {
     use crate::{common, infra, migration};
 
     async fn setup_db(test_name: &str) -> Arc<DatabaseConnection> {
-        let db_file_path = common::dir::get_app_home_path(true).expect("Cannot get db path");
+        let db_file_path = common::dir::get_test_home_path().expect("Cannot get db path");
         let db_file_path = format!("{}/{}", db_file_path, test_name);
         common::dir::make_parent_dir_if_not_exists(&db_file_path).expect("Cannot make parent dir");
 
