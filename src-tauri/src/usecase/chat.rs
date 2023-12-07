@@ -1,8 +1,9 @@
-use crate::common::errors::ApplicationError;
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use crate::domain::chat::AIChat;
+use crate::common::errors::ApplicationError;
+use crate::domain::chat::{AIChat, ChatSettings};
+use crate::domain::settings::SettingsRepository;
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
@@ -20,75 +21,109 @@ pub trait Chat: Send + Sync {
 }
 
 #[derive(Clone, Debug)]
-struct ChatUsecase<T>
+pub struct ChatUsecase<T, R>
 where
-    T: AIChat + ?Sized,
+    T: AIChat,
+    R: SettingsRepository,
 {
-    chat_client: Box<T>,
-}
-
-pub fn new(chat: Box<dyn AIChat>) -> Box<dyn Chat> {
-    Box::new(ChatUsecase { chat_client: chat })
+    ai_chat: T,
+    settings_repository: R,
 }
 
 #[async_trait]
-impl<T> Chat for ChatUsecase<T>
+impl<T, R> Chat for ChatUsecase<T, R>
 where
-    T: AIChat + ?Sized,
+    T: AIChat,
+    R: SettingsRepository,
 {
     async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
-        let settings = crate::domain::chat::ChatSettings {
+        let settings = ChatSettings {
+            id: 0,
             user_prompt: request.user_prompt.clone(),
             system_prompt: request.system_prompt.clone(),
             model: request.model.clone(),
             temperature: request.temperature,
             response_format: request.response_format.clone(),
         };
-        match self.chat_client.do_chat(&settings).await {
-            Ok(res) => Ok(res),
+        let res = self.ai_chat.do_chat(&settings).await;
+        if let Err(err) = res {
+            log::error!("post_chat error: {}", err);
+            return Err(err);
+        }
+        let answer = res.unwrap();
+
+        // DBに永続化
+        let res = self
+            .settings_repository
+            .create_settings("title", "api_type")
+            .await;
+        match res {
+            Ok(_) => Ok(answer),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
-                return Err(err);
+                Err(err)
             }
         }
-        // TODO chatの実行履歴を保存する
     }
 }
 
-// TODO 異常系のテストはそのうち追加する
+impl<T, R> ChatUsecase<T, R>
+where
+    T: AIChat,
+    R: SettingsRepository,
+{
+    pub fn new(chat: T, setting_repository: R) -> Self {
+        ChatUsecase {
+            ai_chat: chat,
+            settings_repository: setting_repository,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use async_trait::async_trait;
-    use tokio::sync::Mutex;
+    use sea_orm::DbErr;
 
     use crate::common::errors::ApplicationError;
     use crate::domain::chat::ChatSettings;
+    use crate::domain::settings::SettingsModel;
 
     use super::*;
 
-    struct MockAIChat {
-        expected_prompt: Arc<Mutex<String>>,
+    // default mocking
+    struct MockAIChat {}
+    struct MockSettingsRepository {}
+    #[async_trait]
+    impl AIChat for MockAIChat {
+        async fn do_chat(&self, _settings: &ChatSettings) -> Result<String, ApplicationError> {
+            Ok("Test response".to_string())
+        }
     }
 
     #[async_trait]
-    impl AIChat for MockAIChat {
-        async fn do_chat(&self, settings: &ChatSettings) -> Result<String, ApplicationError> {
-            let expected_prompt = self.expected_prompt.lock().await;
-            assert_eq!(settings.user_prompt, *expected_prompt);
-            Ok("Test response".to_string())
+    impl SettingsRepository for MockSettingsRepository {
+        async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
+            Ok(Vec::new())
+        }
+
+        async fn create_settings(
+            &self,
+            _title: &str,
+            _api_type: &str,
+        ) -> Result<i32, ApplicationError> {
+            Ok(1)
         }
     }
 
     #[tokio::test]
     async fn test_post_chat() {
         let expected_prompt = "Test prompt".to_string();
-        let mock_chat = MockAIChat {
-            expected_prompt: Arc::new(Mutex::new(expected_prompt.clone())),
-        };
+        let mock_chat = MockAIChat {};
+        let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            chat_client: Box::new(mock_chat),
+            ai_chat: mock_chat,
+            settings_repository: mock_settings_repository,
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
@@ -100,5 +135,73 @@ mod tests {
         let result = chat_usecase.post_chat(request).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Test response");
+    }
+
+    #[tokio::test]
+    async fn test_post_chat_error_do_chat() {
+        struct MockAIChatError {}
+        #[async_trait]
+        impl AIChat for MockAIChatError {
+            async fn do_chat(&self, _settings: &ChatSettings) -> Result<String, ApplicationError> {
+                Err(ApplicationError::OpenAPIError("open ai error".to_string()))
+            }
+        }
+
+        let expected_prompt = "Test prompt".to_string();
+        let mock_chat = MockAIChatError {};
+        let mock_settings_repository = MockSettingsRepository {};
+        let chat_usecase = ChatUsecase {
+            ai_chat: mock_chat,
+            settings_repository: mock_settings_repository,
+        };
+        let request = ChatRequest {
+            user_prompt: expected_prompt,
+            system_prompt: "".to_string(),
+            model: "".to_string(),
+            temperature: 0.0,
+            response_format: None,
+        };
+        let result = chat_usecase.post_chat(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_post_chat_error_create_settings() {
+        struct MockSettingsRepositoryError {}
+        #[async_trait]
+        impl SettingsRepository for MockSettingsRepositoryError {
+            async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
+                Err(ApplicationError::DBError(DbErr::Type(
+                    "db error".to_string(),
+                )))
+            }
+
+            async fn create_settings(
+                &self,
+                _title: &str,
+                _api_type: &str,
+            ) -> Result<i32, ApplicationError> {
+                Err(ApplicationError::DBError(DbErr::Type(
+                    "db error".to_string(),
+                )))
+            }
+        }
+
+        let expected_prompt = "Test prompt".to_string();
+        let mock_chat = MockAIChat {};
+        let mock_settings_repository = MockSettingsRepositoryError {};
+        let chat_usecase = ChatUsecase {
+            ai_chat: mock_chat,
+            settings_repository: mock_settings_repository,
+        };
+        let request = ChatRequest {
+            user_prompt: expected_prompt,
+            system_prompt: "".to_string(),
+            model: "".to_string(),
+            temperature: 0.0,
+            response_format: None,
+        };
+        let result = chat_usecase.post_chat(request).await;
+        assert!(result.is_err());
     }
 }

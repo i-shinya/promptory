@@ -9,21 +9,17 @@ use crate::domain::chat::{AIChat, ChatSettings};
 use crate::infra::core::openai::AIClient;
 
 #[derive(Clone, Debug)]
-struct OpenAIChat<T>
+pub struct OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
-    client: Box<T>,
-}
-
-pub fn new(client: Box<dyn AIClient>) -> Box<dyn AIChat> {
-    Box::new(OpenAIChat { client })
+    client: T,
 }
 
 #[async_trait]
 impl<T> AIChat for OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
     async fn do_chat(&self, settings: &ChatSettings) -> Result<String, ApplicationError> {
         let req = CreateChatCompletionRequestArgs::default()
@@ -42,7 +38,7 @@ where
             }
             Err(err) => {
                 println!("OpenAI chat error: {}", err);
-                Err(ApplicationError::OpenAPIError(err))
+                Err(ApplicationError::OpenAPIError(err.to_string()))
             }
         }
     }
@@ -50,8 +46,12 @@ where
 
 impl<T> OpenAIChat<T>
 where
-    T: AIClient + ?Sized,
+    T: AIClient,
 {
+    pub fn new(client: T) -> Self {
+        OpenAIChat { client }
+    }
+
     fn build_messages(&self, settings: ChatSettings) -> Vec<ChatCompletionRequestMessage> {
         let system_message = ChatCompletionRequestSystemMessageArgs::default()
             .content(settings.system_prompt)
@@ -71,10 +71,9 @@ where
     }
 }
 
-// TODO 異常系のテストはそのうち追加する
 #[cfg(test)]
 mod tests {
-    use async_openai::error::OpenAIError;
+    use async_openai::error::{ApiError, OpenAIError};
     use async_openai::types::{
         ChatChoice, ChatCompletionResponseMessage, CompletionUsage, CreateChatCompletionRequest,
         CreateChatCompletionResponse, FinishReason, Role,
@@ -86,46 +85,46 @@ mod tests {
 
     use super::*;
 
-    struct MockOpenAIClient;
-
-    #[async_trait]
-    impl AIClient for MockOpenAIClient {
-        async fn create_chat(
-            &self,
-            _req: CreateChatCompletionRequest,
-        ) -> Result<CreateChatCompletionResponse, OpenAIError> {
-            // モックのレスポンスを返す
-            Ok(CreateChatCompletionResponse {
-                id: "test".to_string(),
-                object: "chat.completion".to_string(),
-                created: 0,
-                model: "gpt-4-1106-preview".to_string(),
-                usage: Option::from(CompletionUsage {
-                    prompt_tokens: 0,
-                    completion_tokens: 0,
-                    total_tokens: 0,
-                }),
-                choices: vec![ChatChoice {
-                    message: ChatCompletionResponseMessage {
-                        role: Role::System,
-                        content: Some("Test message".to_string()),
-                        tool_calls: None,
-                        function_call: None, // NOTE: function_callが完全に廃止されたら削除する
-                    },
-                    finish_reason: Option::from(FinishReason::Stop),
-                    index: 0,
-                }],
-                system_fingerprint: None,
-            })
-        }
-    }
-
     #[tokio::test]
     async fn test_do_chat() {
+        struct MockOpenAIClient {}
+
+        #[async_trait]
+        impl AIClient for MockOpenAIClient {
+            async fn create_chat(
+                &self,
+                _req: CreateChatCompletionRequest,
+            ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+                Ok(CreateChatCompletionResponse {
+                    id: "test".to_string(),
+                    object: "chat.completion".to_string(),
+                    created: 0,
+                    model: "gpt-4-1106-preview".to_string(),
+                    usage: Option::from(CompletionUsage {
+                        prompt_tokens: 0,
+                        completion_tokens: 0,
+                        total_tokens: 0,
+                    }),
+                    choices: vec![ChatChoice {
+                        message: ChatCompletionResponseMessage {
+                            role: Role::System,
+                            content: Some("Test message".to_string()),
+                            tool_calls: None,
+                            function_call: None, // NOTE: function_callが完全に廃止されたら削除する
+                        },
+                        finish_reason: Option::from(FinishReason::Stop),
+                        index: 0,
+                    }],
+                    system_fingerprint: None,
+                })
+            }
+        }
+
         let mock_chat = OpenAIChat {
-            client: Box::new(MockOpenAIClient),
+            client: MockOpenAIClient {},
         };
         let settings = ChatSettings {
+            id: 0,
             system_prompt: "System prompt".to_string(),
             user_prompt: "User prompt".to_string(),
             model: "gpt-4-1106-preview".to_string(),
@@ -134,5 +133,52 @@ mod tests {
         };
         let result = mock_chat.do_chat(&settings).await;
         assert_eq!(result.unwrap(), "Test message");
+    }
+
+    #[tokio::test]
+    async fn test_do_chat_error() {
+        struct MockOpenAIClient;
+
+        #[async_trait]
+        impl AIClient for MockOpenAIClient {
+            async fn create_chat(
+                &self,
+                _req: CreateChatCompletionRequest,
+            ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+                // モックのレスポンスを返す
+                Err(OpenAIError::ApiError(ApiError {
+                    message: "Internal Server Error".to_string(),
+                    r#type: None,
+                    param: None,
+                    code: None,
+                }))
+            }
+        }
+
+        let mock_chat = OpenAIChat {
+            client: MockOpenAIClient,
+        };
+        let settings = ChatSettings {
+            id: 0,
+            system_prompt: "System prompt".to_string(),
+            user_prompt: "User prompt".to_string(),
+            model: "gpt-4-1106-preview".to_string(),
+            temperature: 0.0,
+            response_format: None,
+        };
+        let result = mock_chat.do_chat(&settings).await;
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ApplicationError::OpenAPIError(
+                OpenAIError::ApiError(ApiError {
+                    message: "Internal Server Error".to_string(),
+                    r#type: None,
+                    param: None,
+                    code: None,
+                })
+                .to_string()
+            )
+        );
     }
 }
