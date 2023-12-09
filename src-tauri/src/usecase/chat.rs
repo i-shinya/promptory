@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use crate::common::errors::ApplicationError;
 use crate::domain::chat::{AIChat, ChatSettings};
-use crate::domain::settings::SettingsRepository;
+use crate::domain::prompt_manager::PromptManagerRepository;
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
@@ -17,14 +17,14 @@ pub struct ChatRequest {
 
 #[async_trait]
 pub trait Chat: Send + Sync {
-    async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError>;
+    async fn run_chat(&self, request: ChatRequest) -> Result<String, ApplicationError>;
 }
 
 #[derive(Clone, Debug)]
 pub struct ChatUsecase<T, R>
 where
     T: AIChat,
-    R: SettingsRepository,
+    R: PromptManagerRepository,
 {
     ai_chat: T,
     settings_repository: R,
@@ -34,9 +34,9 @@ where
 impl<T, R> Chat for ChatUsecase<T, R>
 where
     T: AIChat,
-    R: SettingsRepository,
+    R: PromptManagerRepository,
 {
-    async fn post_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
+    async fn run_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
         let settings = ChatSettings {
             id: 0,
             user_prompt: request.user_prompt.clone(),
@@ -70,7 +70,7 @@ where
 impl<T, R> ChatUsecase<T, R>
 where
     T: AIChat,
-    R: SettingsRepository,
+    R: PromptManagerRepository,
 {
     pub fn new(chat: T, setting_repository: R) -> Self {
         ChatUsecase {
@@ -87,7 +87,7 @@ mod tests {
 
     use crate::common::errors::ApplicationError;
     use crate::domain::chat::ChatSettings;
-    use crate::domain::settings::SettingsModel;
+    use crate::domain::prompt_manager::PromptManagerModel;
 
     use super::*;
 
@@ -102,8 +102,8 @@ mod tests {
     }
 
     #[async_trait]
-    impl SettingsRepository for MockSettingsRepository {
-        async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
+    impl PromptManagerRepository for MockSettingsRepository {
+        async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Ok(Vec::new())
         }
 
@@ -132,7 +132,7 @@ mod tests {
             temperature: 0.0,
             response_format: None,
         };
-        let result = chat_usecase.post_chat(request).await;
+        let result = chat_usecase.run_chat(request).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Test response");
     }
@@ -161,7 +161,7 @@ mod tests {
             temperature: 0.0,
             response_format: None,
         };
-        let result = chat_usecase.post_chat(request).await;
+        let result = chat_usecase.run_chat(request).await;
         assert!(result.is_err());
     }
 
@@ -169,8 +169,8 @@ mod tests {
     async fn test_post_chat_error_create_settings() {
         struct MockSettingsRepositoryError {}
         #[async_trait]
-        impl SettingsRepository for MockSettingsRepositoryError {
-            async fn find_settings(&self) -> Result<Vec<SettingsModel>, ApplicationError> {
+        impl PromptManagerRepository for MockSettingsRepositoryError {
+            async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
@@ -196,12 +196,12 @@ mod tests {
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
-            system_prompt: "".to_string(),
-            model: "".to_string(),
+            system_prompt: "system prompt".to_string(),
+            model: "test_model".to_string(),
             temperature: 0.0,
             response_format: None,
         };
-        let result = chat_usecase.post_chat(request).await;
+        let result = chat_usecase.run_chat(request).await;
         assert!(result.is_err());
     }
 }

@@ -11,9 +11,9 @@ on:
     branches:
       - main # マージ先がmainの場合のみ実行する
   pull_request_review_comment:
-    types: [ created ]
+    types: [created]
   issue_comment:
-    types: [ created ]
+    types: [created]
 
 concurrency:
   group: ${{ github.repository }}-${{ github.event.number || github.head_ref || github.sha }}-${{ github.workflow }}-${{ github.event_name == 'pull_request_review_comment' && 'pr_comment' || 'pr' }}
@@ -43,6 +43,7 @@ jobs:
           path_filters: |
             !db/**
             !**/*.lock
+            !src-tauri/src/infra/repository/entities/**
           system_message: |
             あなたは @coderabbitai（別名 github-actions[bot]）で、OpenAIによって訓練された言語モデルです。
             あなたの目的は、非常に経験豊富なソフトウェアエンジニアとして機能し、コードの一部を徹底的にレビューし、
@@ -60,10 +61,10 @@ jobs:
               - ベストプラクティス: DRY, SOLID, KISS
 
             些細なコードスタイルの問題や、コメント・ドキュメントの欠落についてはコメントしないでください。
-            重要な問題を特定し、解決して全体的なコード品質を向上させることを目指してくださいが、細かい問題は意図的に無視してください。
-            
-            また、以下に配置するコードは自動生成されたコードのため問題があっても意図的に無視してください。
-            - src-tauri/src/infra/repository/entities/
+            重要な問題を特定し、解決して全体的なコード品質を向上させることを目指してもらいたいが、細かい問題は意図的に無視してください。
+
+            以下指摘は不要です
+              - renameされたコードの影響範囲を確認する指摘
           summarize: |
             次の内容でmarkdownフォーマットを使用して、最終的な回答を提供してください。
 

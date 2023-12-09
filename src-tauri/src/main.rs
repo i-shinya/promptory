@@ -40,13 +40,16 @@ async fn main() {
 
     let openai_client = infra::core::openai::OpenAIClient::new();
     let chat = infra::chat::OpenAIChat::new(openai_client);
-    let settings_repository = infra::repository::settings::SettingsRepositoryImpl::new(db);
+    let settings_repository =
+        infra::repository::prompt_manager::PromptManagerRepositoryImpl::new(db);
     let chat_usecase = usecase::chat::ChatUsecase::new(chat, settings_repository);
     controller::chat::Controller::init(chat_usecase);
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             controller::handler::greet,
+            controller::prompt_manager::save_prompt_manager,
+            controller::prompt_manager::get_prompt_managers,
             controller::chat::post_chat,
         ])
         .run(tauri::generate_context!())
