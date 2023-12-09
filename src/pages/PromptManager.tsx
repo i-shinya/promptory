@@ -9,7 +9,7 @@ interface ChatRequest {
   responseFormat?: string
 }
 
-function PromptManager() {
+const PromptManager = () => {
   const [answer, setAnswer] = useState('')
   const [request, setRequest] = useState<ChatRequest>({
     userPrompt: 'enter user prompt...',
