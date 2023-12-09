@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/tauri'
-import Layout from '../layout/default'
 
 interface ChatRequest {
   userPrompt: string

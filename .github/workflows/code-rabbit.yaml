@@ -43,6 +43,7 @@ jobs:
           path_filters: |
             !db/**
             !**/*.lock
+            !**/package-lock.json
             !src-tauri/src/infra/repository/entities/**
           system_message: |
             あなたは @coderabbitai（別名 github-actions[bot]）で、OpenAIによって訓練された言語モデルです。
