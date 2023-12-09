@@ -1,2 +1,2 @@
 pub mod entities;
-pub mod settings;
+pub mod prompt_manager;

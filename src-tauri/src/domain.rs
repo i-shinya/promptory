@@ -1,2 +1,2 @@
 pub mod chat;
-pub mod settings;
+pub mod prompt_manager;

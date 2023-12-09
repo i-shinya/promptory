@@ -15,6 +15,14 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
+        belongs_to = "super::prompt_manger_versions::Entity",
+        from = "Column::VersionId",
+        to = "super::prompt_manger_versions::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    PromptMangerVersions,
+    #[sea_orm(
         belongs_to = "super::runs::Entity",
         from = "Column::RunId",
         to = "super::runs::Column::Id",
@@ -22,25 +30,17 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Runs,
-    #[sea_orm(
-        belongs_to = "super::setting_versions::Entity",
-        from = "Column::VersionId",
-        to = "super::setting_versions::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    SettingVersions,
+}
+
+impl Related<super::prompt_manger_versions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PromptMangerVersions.def()
+    }
 }
 
 impl Related<super::runs::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Runs.def()
-    }
-}
-
-impl Related<super::setting_versions::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::SettingVersions.def()
     }
 }
 

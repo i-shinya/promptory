@@ -4,7 +4,7 @@ pub mod prelude;
 
 pub mod assistant_settings;
 pub mod chat_settings;
+pub mod prompt_manger;
+pub mod prompt_manger_versions;
 pub mod run_histories;
 pub mod runs;
-pub mod setting_versions;
-pub mod settings;

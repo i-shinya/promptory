@@ -10,17 +10,17 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Settings::Table)
+                    .table(PromptManger::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Settings::Id)
+                        ColumnDef::new(PromptManger::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Settings::Title).string().not_null())
-                    .col(ColumnDef::new(Settings::ApiType).string().not_null())
+                    .col(ColumnDef::new(PromptManger::Title).string().not_null())
+                    .col(ColumnDef::new(PromptManger::ApiType).string().not_null())
                     .to_owned(),
             )
             .await?;
@@ -29,30 +29,30 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(SettingVersions::Table)
+                    .table(PromptMangerVersions::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(SettingVersions::Id)
+                        ColumnDef::new(PromptMangerVersions::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(SettingVersions::Version)
+                        ColumnDef::new(PromptMangerVersions::Version)
                             .integer()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(SettingVersions::SettingId)
+                        ColumnDef::new(PromptMangerVersions::ManagerId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-setting-versions-setting_id")
-                            .from(SettingVersions::Table, SettingVersions::SettingId)
-                            .to(Settings::Table, Settings::Id),
+                            .from(PromptMangerVersions::Table, PromptMangerVersions::ManagerId)
+                            .to(PromptManger::Table, PromptManger::Id),
                     )
                     .to_owned(),
             )
@@ -63,9 +63,9 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx-setting-versions-setting_id")
-                    .table(SettingVersions::Table)
-                    .col(SettingVersions::SettingId)
-                    .col(SettingVersions::Version)
+                    .table(PromptMangerVersions::Table)
+                    .col(PromptMangerVersions::ManagerId)
+                    .col(PromptMangerVersions::Version)
                     .unique()
                     .to_owned(),
             )
@@ -84,12 +84,12 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Runs::SettingId).integer().not_null())
+                    .col(ColumnDef::new(Runs::ManagerId).integer().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-runs-setting_id")
-                            .from(Runs::Table, Runs::SettingId)
-                            .to(Settings::Table, Settings::Id),
+                            .from(Runs::Table, Runs::ManagerId)
+                            .to(PromptManger::Table, PromptManger::Id),
                     )
                     .col(ColumnDef::new(Runs::UserPrompt).text().not_null())
                     .col(ColumnDef::new(Runs::Model).string().not_null())
@@ -123,7 +123,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-run-histories-version_id")
                             .from(RunHistories::Table, RunHistories::VersionId)
-                            .to(SettingVersions::Table, SettingVersions::Id),
+                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
                     )
                     .col(ColumnDef::new(RunHistories::Response).text().not_null())
                     .to_owned(),
@@ -148,7 +148,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-chat-settings-version_id")
                             .from(ChatSettings::Table, ChatSettings::VersionId)
-                            .to(SettingVersions::Table, SettingVersions::Id),
+                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
                     )
                     .col(ColumnDef::new(ChatSettings::SystemPrompt).text().not_null())
                     .col(
@@ -182,7 +182,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-assistant-settings-version_id")
                             .from(AssistantSettings::Table, AssistantSettings::VersionId)
-                            .to(SettingVersions::Table, SettingVersions::Id),
+                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
                     )
                     .col(
                         ColumnDef::new(AssistantSettings::SystemPrompt)
@@ -229,20 +229,25 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(SettingVersions::Table)
+                    .table(PromptMangerVersions::Table)
                     .if_exists()
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Settings::Table).if_exists().to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(PromptManger::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum Settings {
+enum PromptManger {
     Table,
     Id,
     Title,
@@ -250,18 +255,18 @@ enum Settings {
 }
 
 #[derive(DeriveIden)]
-enum SettingVersions {
+enum PromptMangerVersions {
     Table,
     Id,
     Version,
-    SettingId,
+    ManagerId,
 }
 
 #[derive(DeriveIden)]
 enum Runs {
     Table,
     Id,
-    SettingId,
+    ManagerId,
     UserPrompt,
     Model,
     Temperature,

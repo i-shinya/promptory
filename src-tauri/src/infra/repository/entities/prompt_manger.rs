@@ -3,29 +3,31 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "assistant_settings")]
+#[sea_orm(table_name = "prompt_manger")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub version_id: i32,
-    pub system_prompt: String,
+    pub title: String,
+    pub api_type: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::prompt_manger_versions::Entity",
-        from = "Column::VersionId",
-        to = "super::prompt_manger_versions::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
+    #[sea_orm(has_many = "super::prompt_manger_versions::Entity")]
     PromptMangerVersions,
+    #[sea_orm(has_many = "super::runs::Entity")]
+    Runs,
 }
 
 impl Related<super::prompt_manger_versions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::PromptMangerVersions.def()
+    }
+}
+
+impl Related<super::runs::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Runs.def()
     }
 }
 
