@@ -45,6 +45,7 @@ jobs:
             !**/*.lock
             !**/package-lock.json
             !src-tauri/src/infra/repository/entities/**
+            !**/README.md
           system_message: |
             あなたは @coderabbitai（別名 github-actions[bot]）で、OpenAIによって訓練された言語モデルです。
             あなたの目的は、非常に経験豊富なソフトウェアエンジニアとして機能し、コードの一部を徹底的にレビューし、
