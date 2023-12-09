@@ -10,17 +10,17 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(PromptManger::Table)
+                    .table(PromptManager::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(PromptManger::Id)
+                        ColumnDef::new(PromptManager::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(PromptManger::Title).string().not_null())
-                    .col(ColumnDef::new(PromptManger::ApiType).string().not_null())
+                    .col(ColumnDef::new(PromptManager::Title).string().not_null())
+                    .col(ColumnDef::new(PromptManager::ApiType).string().not_null())
                     .to_owned(),
             )
             .await?;
@@ -52,7 +52,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-setting-versions-setting_id")
                             .from(PromptMangerVersions::Table, PromptMangerVersions::ManagerId)
-                            .to(PromptManger::Table, PromptManger::Id),
+                            .to(PromptManager::Table, PromptManager::Id),
                     )
                     .to_owned(),
             )
@@ -89,7 +89,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-runs-setting_id")
                             .from(Runs::Table, Runs::ManagerId)
-                            .to(PromptManger::Table, PromptManger::Id),
+                            .to(PromptManager::Table, PromptManager::Id),
                     )
                     .col(ColumnDef::new(Runs::UserPrompt).text().not_null())
                     .col(ColumnDef::new(Runs::Model).string().not_null())
@@ -238,7 +238,7 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(PromptManger::Table)
+                    .table(PromptManager::Table)
                     .if_exists()
                     .to_owned(),
             )
@@ -247,7 +247,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum PromptManger {
+enum PromptManager {
     Table,
     Id,
     Title,

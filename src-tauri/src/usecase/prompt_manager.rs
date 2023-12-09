@@ -1,15 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
 
 use crate::common::errors::ApplicationError;
-use crate::domain::prompt_manager::PromptManagerRepository;
-
-#[derive(Clone, Deserialize, Debug, EnumString, Display)]
-pub enum APIType {
-    Chat,
-    Assistant,
-}
+use crate::domain::prompt_manager::{APIType, PromptManagerRepository};
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
@@ -39,7 +32,7 @@ pub struct GetPromptManagerResponse {
 pub struct PromptManagerItem {
     pub id: i32,
     pub title: String,
-    pub api_type: String,
+    pub api_type: APIType,
 }
 
 #[async_trait]

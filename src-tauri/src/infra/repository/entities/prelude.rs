@@ -2,7 +2,7 @@
 
 pub use super::assistant_settings::Entity as AssistantSettings;
 pub use super::chat_settings::Entity as ChatSettings;
-pub use super::prompt_manger::Entity as PromptManger;
+pub use super::prompt_manager::Entity as PromptManager;
 pub use super::prompt_manger_versions::Entity as PromptMangerVersions;
 pub use super::run_histories::Entity as RunHistories;
 pub use super::runs::Entity as Runs;

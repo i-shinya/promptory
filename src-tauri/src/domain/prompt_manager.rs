@@ -1,12 +1,20 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 
 use crate::common::errors::ApplicationError;
+
+#[derive(Clone, Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
+pub enum APIType {
+    Chat,
+    Assistant,
+}
 
 #[derive(Clone, Debug)]
 pub struct PromptManagerModel {
     pub id: i32,
     pub title: String,
-    pub api_type: String,
+    pub api_type: APIType,
 }
 
 #[async_trait]

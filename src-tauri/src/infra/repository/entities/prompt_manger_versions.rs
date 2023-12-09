@@ -18,13 +18,13 @@ pub enum Relation {
     #[sea_orm(has_many = "super::chat_settings::Entity")]
     ChatSettings,
     #[sea_orm(
-        belongs_to = "super::prompt_manger::Entity",
+        belongs_to = "super::prompt_manager::Entity",
         from = "Column::ManagerId",
-        to = "super::prompt_manger::Column::Id",
+        to = "super::prompt_manager::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    PromptManger,
+    PromptManager,
     #[sea_orm(has_many = "super::run_histories::Entity")]
     RunHistories,
 }
@@ -41,9 +41,9 @@ impl Related<super::chat_settings::Entity> for Entity {
     }
 }
 
-impl Related<super::prompt_manger::Entity> for Entity {
+impl Related<super::prompt_manager::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::PromptManger.def()
+        Relation::PromptManager.def()
     }
 }
 

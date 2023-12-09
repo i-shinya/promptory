@@ -5,8 +5,8 @@ use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
 
 use crate::common::errors::ApplicationError;
 use crate::domain::prompt_manager::{PromptManagerModel, PromptManagerRepository};
-use crate::infra::repository::entities::prelude::PromptManger;
-use crate::infra::repository::entities::prompt_manger;
+use crate::infra::repository::entities::prelude::PromptManager;
+use crate::infra::repository::entities::prompt_manager;
 
 #[derive(Clone, Debug)]
 pub struct PromptManagerRepositoryImpl {
@@ -16,14 +16,14 @@ pub struct PromptManagerRepositoryImpl {
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
     async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
-        let settings = PromptManger::find().all(self.db.as_ref()).await;
+        let settings = PromptManager::find().all(self.db.as_ref()).await;
         match settings {
             Ok(setting) => Ok(setting
                 .into_iter()
                 .map(|s| PromptManagerModel {
                     id: s.id,
                     title: s.title,
-                    api_type: s.api_type,
+                    api_type: s.api_type.parse().unwrap(), // enumがパースできないケースは無視する
                 })
                 .collect()),
             Err(err) => Err(ApplicationError::DBError(err)),
@@ -31,12 +31,12 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
     }
 
     async fn create_settings(&self, title: &str, api_type: &str) -> Result<i32, ApplicationError> {
-        let setting = prompt_manger::ActiveModel {
+        let setting = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set(title.to_string()),
             api_type: ActiveValue::Set(api_type.to_string()),
         };
-        let res = PromptManger::insert(setting)
+        let res = PromptManager::insert(setting)
             .exec(self.db.as_ref())
             .await
             .map_err(ApplicationError::DBError)?;
@@ -57,9 +57,9 @@ mod tests {
     use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
     use sea_orm_migration::MigratorTrait;
 
-    use crate::domain::prompt_manager::PromptManagerRepository;
-    use crate::infra::repository::entities::prelude::PromptManger;
-    use crate::infra::repository::entities::prompt_manger;
+    use crate::domain::prompt_manager::{APIType, PromptManagerRepository};
+    use crate::infra::repository::entities::prelude::PromptManager;
+    use crate::infra::repository::entities::prompt_manager;
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
     use crate::{common, infra, migration};
 
@@ -84,12 +84,12 @@ mod tests {
         let db = setup_db("test_find_settings").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
-        let setting = prompt_manger::ActiveModel {
+        let setting = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
-            api_type: ActiveValue::Set("test_api_type".to_string()),
+            api_type: ActiveValue::Set(APIType::Chat.to_string()),
         };
-        let _ = PromptManger::insert(setting)
+        let _ = PromptManager::insert(setting)
             .exec(db.as_ref())
             .await
             .unwrap();
@@ -101,7 +101,7 @@ mod tests {
         // assert
         assert_eq!(settings.len(), 1);
         assert_eq!(settings[0].title, "test_title");
-        assert_eq!(settings[0].api_type, "test_api_type");
+        assert_eq!(settings[0].api_type, APIType::Chat);
     }
 
     #[tokio::test]
@@ -115,7 +115,10 @@ mod tests {
         let id = result.unwrap();
 
         // assert
-        let settings = PromptManger::find_by_id(id).one(db.as_ref()).await.unwrap();
+        let settings = PromptManager::find_by_id(id)
+            .one(db.as_ref())
+            .await
+            .unwrap();
         let settings = settings.unwrap();
         assert_eq!(settings.title, "test_title");
         assert_eq!(settings.api_type, "test_api_type");
