@@ -20,7 +20,7 @@ const SideMenu = () => {
 
   const selectPromptManager = (id: number) => {
     // TODO詳細画面を作成したらそちらに遷移するようにする
-    console.log(id)
+    console.log(`select ${id}`)
     navigate('/prompt_manager')
   }
 
@@ -35,7 +35,7 @@ const SideMenu = () => {
 
   const deletePromptManager = (id: number) => {
     // TODO rust側の削除処理を呼び出す
-    console.log(id)
+    console.log(`delete ${id}`)
   }
 
   return (

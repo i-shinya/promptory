@@ -14,14 +14,22 @@ const PromptManagerList = ({
 }: PromptManagerListProps) => {
   return (
     <div className="overflow-y-auto">
-      {promptManagers.map((item) => (
-        <PromptManagerCard
-          key={item.id}
-          item={item}
-          onClickPromptManager={onClickPromptManager}
-          onClickDeletePromptManager={onClickDeletePromptManager}
-        />
-      ))}
+      {promptManagers.length === 0 ? (
+        <div className="dark:bg-zinc-800 p-2 m-2 rounded shadow cursor-pointer">
+          <span className="font-bold">No prompts</span>
+        </div>
+      ) : (
+        <>
+          {promptManagers.map((item) => (
+            <PromptManagerCard
+              key={item.id}
+              item={item}
+              onClickPromptManager={onClickPromptManager}
+              onClickDeletePromptManager={onClickDeletePromptManager}
+            />
+          ))}
+        </>
+      )}
     </div>
   )
 }
