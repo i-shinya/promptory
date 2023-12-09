@@ -1,4 +1,4 @@
-function Config() {
+const Config = () => {
   return <div className="container">config page</div>
 }
 

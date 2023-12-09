@@ -43,8 +43,11 @@ jobs:
           path_filters: |
             !db/**
             !**/*.lock
+            !**/package.json
             !**/package-lock.json
             !src-tauri/src/infra/repository/entities/**
+            !**/README.md
+            !**/**.config.js
           system_message: |
             あなたは @coderabbitai（別名 github-actions[bot]）で、OpenAIによって訓練された言語モデルです。
             あなたの目的は、非常に経験豊富なソフトウェアエンジニアとして機能し、コードの一部を徹底的にレビューし、
@@ -66,6 +69,8 @@ jobs:
 
             以下指摘は不要です
               - renameされたコードの影響範囲を確認する指摘
+              - TODOコメントに対する指摘
+              - TODOコメント記載箇所のコードでTODOコメントに記載された内容が実装された際に解消される問題に対する指摘
           summarize: |
             次の内容でmarkdownフォーマットを使用して、最終的な回答を提供してください。
 

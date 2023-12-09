@@ -8,9 +8,9 @@ This template should help get you started developing with Tauri, React and Types
 
 ## DB
 
-###  migration
+### migration
 
-アプリ起動時に自動的にmigrationするようにした
+アプリ起動時に自動的に migration するようにした
 
 #### add migration file
 
@@ -24,3 +24,13 @@ sea-orm-cli generate entity \
     -o src-tauri/src/infra/repository/entities
 ```
 
+## run
+
+```bash
+npm run tauri dev
+```
+
+ウィンドウが立ち上がる
+
+また、以下 URL でブラウザから確認することも可能
+`http://localhost:1420/`
