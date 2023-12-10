@@ -19,6 +19,7 @@ pub struct PromptManagerModel {
 
 #[async_trait]
 pub trait PromptManagerRepository: Send + Sync {
-    async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError>;
+    async fn find_all_prompt_managers(&self) -> Result<Vec<PromptManagerModel>, ApplicationError>;
     async fn create_prompt_manager(&self, title: &str) -> Result<i32, ApplicationError>;
+    async fn logical_delete_prompt_manager(&self, id: i32) -> Result<(), ApplicationError>;
 }

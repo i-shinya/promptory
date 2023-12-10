@@ -3,7 +3,10 @@ import PromptManagerList from '../../features/prompt-manager/components/PromptMa
 import { PromptManager } from '../../features/prompt-manager/types'
 import SideMenuHeader from './SideMenuHeader'
 import { useNavigate } from 'react-router-dom'
-import { createPromptManagerAction } from '../../features/prompt-manager/actions'
+import {
+  createPromptManagerAction,
+  logicalDeletePromptManagerAction,
+} from '../../features/prompt-manager/actions'
 
 const SideMenu = () => {
   const navigate = useNavigate()
@@ -23,7 +26,7 @@ const SideMenu = () => {
   ])
 
   const selectPromptManager = (id: number) => {
-    // TODO詳細画面を作成したらそちらに遷移するようにする
+    // TODO 詳細画面を作成したらそちらに遷移するようにする
     console.log(`select ${id}`)
     navigate('/prompt_manager')
   }
@@ -38,22 +41,32 @@ const SideMenu = () => {
 
   const savePromptManager = async (title: string) => {
     try {
-      const id = await createPromptManagerAction(title)
-      console.log(id)
+      const res = await createPromptManagerAction(title)
+      const id = res.id
+      console.log(res.id)
       setIsVisibleNewManagerForm(false)
       setPromptManagers([
         ...promptManagers,
         { id, title, apiType: null, tags: [] },
       ])
     } catch (error) {
-      // TODO react notificationを追加してエラー時に表示する
+      // TODO react notificationを追加してエラー時にトーストを表示するようにする
       console.error('Failed to create prompt manager:', error)
     }
   }
 
-  const deletePromptManager = (id: number) => {
-    // TODO rust側の削除処理を呼び出す
-    console.log(`delete ${id}`)
+  const deletePromptManager = async (id: number) => {
+    try {
+      await logicalDeletePromptManagerAction(id)
+      removePromptManager(id)
+    } catch (error) {
+      // TODO react notificationを追加してエラー時にトーストを表示するようにする
+      console.error('Failed to logical delete prompt manager:', error)
+    }
+  }
+
+  const removePromptManager = (id: number) => {
+    setPromptManagers(promptManagers.filter((item) => item.id !== id))
   }
 
   return (
