@@ -42,7 +42,7 @@ pub async fn create_prompt_manager(
         request
     );
     match res {
-        Ok(res) => Ok(res.id.to_string()),
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
         Err(err) => Err(err.to_string()),
     }
 }
@@ -58,13 +58,7 @@ pub async fn get_prompt_managers(
         request
     );
     match res {
-        Ok(res) => {
-            let json = serde_json::to_string(&res);
-            match json {
-                Ok(json) => Ok(json),
-                Err(err) => Err(err.to_string()),
-            }
-        }
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
         Err(err) => Err(err.to_string()),
     }
 }
@@ -73,20 +67,14 @@ pub async fn get_prompt_managers(
 #[tauri::command]
 pub async fn logical_delete_prompt_manager(
     request: usecase::prompt_manager::DeletePromptManagerRequest,
-) -> Result<String, String> {
+) -> Result<(), String> {
     let res = log_ipc!(
         get_controller().prompt_manager,
         logical_delete_prompt_managers,
         request
     );
     match res {
-        Ok(res) => {
-            let json = serde_json::to_string(&res);
-            match json {
-                Ok(json) => Ok(json),
-                Err(err) => Err(err.to_string()),
-            }
-        }
+        Ok(_) => Ok(()),
         Err(err) => Err(err.to_string()),
     }
 }

@@ -15,7 +15,7 @@ pub struct PromptManagerRepositoryImpl {
 
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
-    async fn find_all(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+    async fn find_all_prompt_managers(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
         let settings = PromptManager::find().all(self.db.as_ref()).await;
         match settings {
             Ok(setting) => Ok({
@@ -32,7 +32,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         }
     }
 
-    async fn create(&self, title: &str) -> Result<i32, ApplicationError> {
+    async fn create_prompt_manager(&self, title: &str) -> Result<i32, ApplicationError> {
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set(title.to_string()),
@@ -46,7 +46,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         Ok(res.last_insert_id)
     }
 
-    async fn logical_delete(&self, id: i32) -> Result<i32, ApplicationError> {
+    async fn logical_delete_prompt_manager(&self, id: i32) -> Result<(), ApplicationError> {
         let prompt_manager = PromptManager::find_by_id(id)
             .one(self.db.as_ref())
             .await
@@ -60,7 +60,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
             .update(self.db.as_ref())
             .await
             .map_err(ApplicationError::DBError)?;
-        Ok(res.id)
+        Ok(())
     }
 }
 
@@ -115,7 +115,7 @@ mod tests {
             .await
             .expect("Failed to insert prompt manager");
 
-        let result = repo.find_all().await;
+        let result = repo.find_all_prompt_managers().await;
         assert!(result.is_ok());
         let settings = result.unwrap();
 
@@ -131,7 +131,7 @@ mod tests {
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         // create_settingsメソッドを呼び出し
-        let result = repo.create("test_title").await;
+        let result = repo.create_prompt_manager("test_title").await;
         assert!(result.is_ok());
         let id = result.unwrap();
 
@@ -163,7 +163,7 @@ mod tests {
             .expect("Failed to insert prompt manager");
 
         // 作成した設定を削除
-        let result = repo.logical_delete(1).await;
+        let result = repo.logical_delete_prompt_manager(1).await;
         assert!(result.is_ok());
 
         // 削除した設定が存在し、deleted_atがNoneでないことを確認
@@ -181,7 +181,7 @@ mod tests {
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         // 存在しないIDでlogical_deleteメソッドを呼び出し
-        let result = repo.logical_delete(9999).await;
+        let result = repo.logical_delete_prompt_manager(9999).await;
         assert!(result.is_err());
     }
 }

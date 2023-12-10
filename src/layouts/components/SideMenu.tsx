@@ -41,8 +41,9 @@ const SideMenu = () => {
 
   const savePromptManager = async (title: string) => {
     try {
-      const id = await createPromptManagerAction(title)
-      console.log(id)
+      const res = await createPromptManagerAction(title)
+      const id = res.id
+      console.log(res.id)
       setIsVisibleNewManagerForm(false)
       setPromptManagers([
         ...promptManagers,
@@ -56,8 +57,8 @@ const SideMenu = () => {
 
   const deletePromptManager = async (id: number) => {
     try {
-      const res = await logicalDeletePromptManagerAction(id)
-      removePromptManager(res.id)
+      await logicalDeletePromptManagerAction(id)
+      removePromptManager(id)
     } catch (error) {
       // TODO react notificationを追加してエラー時にトーストを表示するようにする
       console.error('Failed to logical delete prompt manager:', error)

@@ -55,7 +55,10 @@ where
         let answer = res.unwrap();
 
         // DBに永続化
-        let res = self.prompt_manager_repository.create("title").await;
+        let res = self
+            .prompt_manager_repository
+            .create_prompt_manager("title")
+            .await;
         match res {
             Ok(_) => Ok(answer),
             Err(err) => {
@@ -102,15 +105,17 @@ mod tests {
 
     #[async_trait]
     impl PromptManagerRepository for MockSettingsRepository {
-        async fn find_all(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+        async fn find_all_prompt_managers(
+            &self,
+        ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Ok(Vec::new())
         }
 
-        async fn create(&self, _title: &str) -> Result<i32, ApplicationError> {
+        async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
             Ok(1)
         }
 
-        async fn logical_delete(&self, _id: i32) -> Result<i32, ApplicationError> {
+        async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<i32, ApplicationError> {
             Ok(1)
         }
     }
@@ -169,19 +174,24 @@ mod tests {
         struct MockSettingsRepositoryError {}
         #[async_trait]
         impl PromptManagerRepository for MockSettingsRepositoryError {
-            async fn find_all(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+            async fn find_all_prompt_managers(
+                &self,
+            ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
             }
 
-            async fn create(&self, _title: &str) -> Result<i32, ApplicationError> {
+            async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
             }
 
-            async fn logical_delete(&self, _id: i32) -> Result<i32, ApplicationError> {
+            async fn logical_delete_prompt_manager(
+                &self,
+                _id: i32,
+            ) -> Result<i32, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))

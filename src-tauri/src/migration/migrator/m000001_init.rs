@@ -21,7 +21,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(PromptManager::Title).string().not_null())
                     .col(ColumnDef::new(PromptManager::ApiType).string())
-                    .col(ColumnDef::new(PromptManager::DeletedAt).date_time())
+                    .col(ColumnDef::new(PromptManager::DeletedAt).timestamp())
                     .to_owned(),
             )
             .await?;
@@ -253,7 +253,7 @@ enum PromptManager {
     Id,
     Title,
     ApiType,
-    DeletedAt
+    DeletedAt,
 }
 
 #[derive(DeriveIden)]
