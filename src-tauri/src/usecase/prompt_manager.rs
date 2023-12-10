@@ -51,6 +51,18 @@ pub struct PromptManagerItem {
     pub api_type: Option<APIType>,
 }
 
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+pub struct DeletePromptManagerRequest {
+    pub id: i32,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+pub struct DeletePromptManagerResponse {
+    pub id: i32,
+}
+
 #[async_trait]
 pub trait PromptManager: Send + Sync {
     async fn create_prompt_manager(
@@ -62,6 +74,11 @@ pub trait PromptManager: Send + Sync {
         &self,
         request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError>;
+
+    async fn logical_delete_prompt_managers(
+        &self,
+        request: DeletePromptManagerRequest,
+    ) -> Result<DeletePromptManagerResponse, ApplicationError>;
 }
 
 #[derive(Clone, Debug)]
@@ -83,7 +100,7 @@ where
     ) -> Result<CreatePromptManagerResponse, ApplicationError> {
         let res = self
             .prompt_manager_repository
-            .create_prompt_manager(request.title.as_str())
+            .create(request.title.as_str())
             .await;
 
         match res {
@@ -99,7 +116,7 @@ where
         &self,
         _request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError> {
-        let res = self.prompt_manager_repository.find_prompt_manager().await;
+        let res = self.prompt_manager_repository.find_all().await;
         match res {
             Ok(mana) => {
                 let managers = mana
@@ -114,6 +131,23 @@ where
             }
             Err(err) => {
                 log::error!("get_prompt_managers error: {}", err);
+                Err(err)
+            }
+        }
+    }
+
+    async fn logical_delete_prompt_managers(
+        &self,
+        request: DeletePromptManagerRequest,
+    ) -> Result<DeletePromptManagerResponse, ApplicationError> {
+        let res = self
+            .prompt_manager_repository
+            .logical_delete(request.id)
+            .await;
+        match res {
+            Ok(id) => Ok(DeletePromptManagerResponse { id }),
+            Err(err) => {
+                log::error!("logical_delete_prompt_managers error: {}", err);
                 Err(err)
             }
         }
@@ -141,18 +175,22 @@ mod tests {
     use crate::common::errors::ApplicationError;
     use crate::domain::prompt_manager::{PromptManagerModel, PromptManagerRepository};
     use crate::usecase::prompt_manager::{
-        APIType, CreatePromptManagerRequest, GetPromptManagerRequest, PromptManager,
-        PromptManagerUsecase,
+        APIType, CreatePromptManagerRequest, DeletePromptManagerRequest, GetPromptManagerRequest,
+        PromptManager, PromptManagerUsecase,
     };
 
     struct MockPromptManagersRepository {}
     #[async_trait]
     impl PromptManagerRepository for MockPromptManagersRepository {
-        async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+        async fn find_all(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Ok(Vec::new())
         }
 
-        async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
+        async fn create(&self, _title: &str) -> Result<i32, ApplicationError> {
+            Ok(1)
+        }
+
+        async fn logical_delete(&self, _id: i32) -> Result<i32, ApplicationError> {
             Ok(1)
         }
     }
@@ -160,13 +198,19 @@ mod tests {
     struct MockPromptManagersRepositoryError {}
     #[async_trait]
     impl PromptManagerRepository for MockPromptManagersRepositoryError {
-        async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+        async fn find_all(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Err(ApplicationError::DBError(DbErr::Type(
                 "db error".to_string(),
             )))
         }
 
-        async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
+        async fn create(&self, _title: &str) -> Result<i32, ApplicationError> {
+            Err(ApplicationError::DBError(DbErr::Type(
+                "db error".to_string(),
+            )))
+        }
+
+        async fn logical_delete(&self, _id: i32) -> Result<i32, ApplicationError> {
             Err(ApplicationError::DBError(DbErr::Type(
                 "db error".to_string(),
             )))
@@ -222,6 +266,33 @@ mod tests {
         };
         let request = GetPromptManagerRequest {};
         let result = prompt_manager_usecase.get_prompt_managers(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_logical_delete_prompt_managers() {
+        let mock_repository = MockPromptManagersRepository {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = DeletePromptManagerRequest { id: 1 };
+        let result = prompt_manager_usecase
+            .logical_delete_prompt_managers(request)
+            .await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, 1);
+    }
+
+    #[tokio::test]
+    async fn test_logical_delete_prompt_managers_error() {
+        let mock_repository = MockPromptManagersRepositoryError {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = DeletePromptManagerRequest { id: 1 };
+        let result = prompt_manager_usecase
+            .logical_delete_prompt_managers(request)
+            .await;
         assert!(result.is_err());
     }
 }

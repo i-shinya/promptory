@@ -30,6 +30,7 @@ log = "0.4.20"
 env_logger = "0.10.1"
 strum = "0.25.0"
 strum_macros = "0.25.3"
+chrono = "0.4.31"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

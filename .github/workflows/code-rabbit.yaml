@@ -43,6 +43,8 @@ jobs:
           path_filters: |
             !db/**
             !**/*.lock
+            !**/cargo.toml
+            !**/cargo.lock
             !**/package.json
             !**/package-lock.json
             !src-tauri/src/infra/repository/entities/**
@@ -74,6 +76,7 @@ jobs:
               - オブジェクトや構造体のフィールドの追加・削除・変更の影響範囲を確認するよう促す指摘
               - TODOコメントに対する指摘
               - TODOコメント記載箇所のコードでTODOコメントに記載された内容が実装された際に解消される問題に対する指摘
+              - TODOコメント直下のconsole.logに対する指摘
           summarize: |
             次の内容でmarkdownフォーマットを使用して、最終的な回答を提供してください。
 
