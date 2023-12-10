@@ -55,7 +55,7 @@ where
         // DBに永続化
         let res = self
             .settings_repository
-            .create_settings("title", "api_type")
+            .create_prompt_manager("title")
             .await;
         match res {
             Ok(_) => Ok(answer),
@@ -103,15 +103,11 @@ mod tests {
 
     #[async_trait]
     impl PromptManagerRepository for MockSettingsRepository {
-        async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+        async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Ok(Vec::new())
         }
 
-        async fn create_settings(
-            &self,
-            _title: &str,
-            _api_type: &str,
-        ) -> Result<i32, ApplicationError> {
+        async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
             Ok(1)
         }
     }
@@ -170,17 +166,15 @@ mod tests {
         struct MockSettingsRepositoryError {}
         #[async_trait]
         impl PromptManagerRepository for MockSettingsRepositoryError {
-            async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+            async fn find_prompt_manager(
+                &self,
+            ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
             }
 
-            async fn create_settings(
-                &self,
-                _title: &str,
-                _api_type: &str,
-            ) -> Result<i32, ApplicationError> {
+            async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))

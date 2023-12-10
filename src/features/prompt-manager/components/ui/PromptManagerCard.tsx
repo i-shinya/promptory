@@ -1,3 +1,4 @@
+import Card from '../../../../components/ui/Card'
 import IconButton from '../../../../components/ui/IconButton'
 import { PromptManager } from '../../types'
 
@@ -13,14 +14,14 @@ const PromptManagerCard = ({
   onClickDeletePromptManager,
 }: PromptManagerCardProps) => {
   return (
-    <div
-      className="dark:bg-zinc-800 p-2 m-2 rounded shadow cursor-pointer"
-      onClick={(e) => {
-        e.stopPropagation()
-        onClickPromptManager(item.id)
-      }}
-    >
-      <div className="flex flex-col gap-px">
+    <Card>
+      <div
+        className="flex flex-col gap-px cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation()
+          onClickPromptManager(item.id)
+        }}
+      >
         <div className="flex flex-row justify-between">
           <span className="px-2 text-sm border-l-4 border-solid border-white">
             {item.apiType}
@@ -46,7 +47,7 @@ const PromptManagerCard = ({
           ))}
         </div>
       </div>
-    </div>
+    </Card>
   )
 }
 

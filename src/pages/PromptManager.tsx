@@ -23,7 +23,7 @@ const PromptManager = () => {
       const response = await invoke('post_chat', { request })
       setAnswer(response as string)
     } catch (error) {
-      // TODO handler error
+      // TODO react notificationを追加してエラー時に表示する
       console.error('Failed to post chat:', error)
     }
   }

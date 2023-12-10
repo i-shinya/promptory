@@ -38,17 +38,23 @@ async fn main() {
             .expect("Migration error");
     }
 
+    // infra層の初期化
     let openai_client = infra::core::openai::OpenAIClient::new();
     let chat = infra::chat::OpenAIChat::new(openai_client);
     let settings_repository =
         infra::repository::prompt_manager::PromptManagerRepositoryImpl::new(db);
-    let chat_usecase = usecase::chat::ChatUsecase::new(chat, settings_repository);
+    // usecase層の初期化
+    let chat_usecase = usecase::chat::ChatUsecase::new(chat, settings_repository.clone());
+    let prompt_manager_usecase =
+        usecase::prompt_manager::PromptManagerUsecase::new(settings_repository.clone());
+    // controller層の初期化
     controller::chat::Controller::init(chat_usecase);
+    controller::prompt_manager::Controller::init(prompt_manager_usecase);
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             controller::handler::greet,
-            controller::prompt_manager::save_prompt_manager,
+            controller::prompt_manager::create_prompt_manager,
             controller::prompt_manager::get_prompt_managers,
             controller::chat::post_chat,
         ])

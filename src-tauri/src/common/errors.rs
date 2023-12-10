@@ -10,4 +10,6 @@ pub enum ApplicationError {
     OpenAPIError(String),
     #[error("db error: {0}")]
     DBError(#[from] DbErr),
+    #[error("entity error: {0}")]
+    DBEntityError(String),
 }

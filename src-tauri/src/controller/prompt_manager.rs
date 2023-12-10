@@ -33,8 +33,8 @@ fn get_controller() -> &'static Box<Controller<dyn PromptManager>> {
 
 /// プロンプトマネージャーを保存する
 #[tauri::command]
-pub async fn save_prompt_manager(
-    request: usecase::prompt_manager::SavePromptManagerRequest,
+pub async fn create_prompt_manager(
+    request: usecase::prompt_manager::CreatePromptManagerRequest,
 ) -> Result<String, String> {
     let res = log_ipc!(
         get_controller().prompt_manager,

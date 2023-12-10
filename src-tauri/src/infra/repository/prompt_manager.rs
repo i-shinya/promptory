@@ -15,26 +15,28 @@ pub struct PromptManagerRepositoryImpl {
 
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
-    async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+    async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
         let settings = PromptManager::find().all(self.db.as_ref()).await;
         match settings {
-            Ok(setting) => Ok(setting
-                .into_iter()
-                .map(|s| PromptManagerModel {
-                    id: s.id,
-                    title: s.title,
-                    api_type: s.api_type.parse().unwrap(), // enumがパースできないケースは無視する
-                })
-                .collect()),
+            Ok(setting) => Ok({
+                setting
+                    .into_iter()
+                    .map(|s| PromptManagerModel {
+                        id: s.id,
+                        title: s.title,
+                        api_type: s.api_type.map(|a| a.parse().unwrap()),
+                    })
+                    .collect()
+            }),
             Err(err) => Err(ApplicationError::DBError(err)),
         }
     }
 
-    async fn create_settings(&self, title: &str, api_type: &str) -> Result<i32, ApplicationError> {
+    async fn create_prompt_manager(&self, title: &str) -> Result<i32, ApplicationError> {
         let setting = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set(title.to_string()),
-            api_type: ActiveValue::Set(api_type.to_string()),
+            api_type: ActiveValue::Set(None),
         };
         let res = PromptManager::insert(setting)
             .exec(self.db.as_ref())
@@ -87,21 +89,21 @@ mod tests {
         let setting = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
-            api_type: ActiveValue::Set(APIType::Chat.to_string()),
+            api_type: ActiveValue::Set(Option::from(APIType::Chat.to_string())),
         };
         let _ = PromptManager::insert(setting)
             .exec(db.as_ref())
             .await
             .unwrap();
 
-        let result = repo.find_settings().await;
+        let result = repo.find_prompt_manager().await;
         assert!(result.is_ok());
         let settings = result.unwrap();
 
         // assert
         assert_eq!(settings.len(), 1);
         assert_eq!(settings[0].title, "test_title");
-        assert_eq!(settings[0].api_type, APIType::Chat);
+        assert_eq!(settings[0].api_type, Some(APIType::Chat));
     }
 
     #[tokio::test]
@@ -110,7 +112,7 @@ mod tests {
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         // create_settingsメソッドを呼び出し
-        let result = repo.create_settings("test_title", "test_api_type").await;
+        let result = repo.create_prompt_manager("test_title").await;
         assert!(result.is_ok());
         let id = result.unwrap();
 
@@ -121,6 +123,6 @@ mod tests {
             .unwrap();
         let settings = settings.unwrap();
         assert_eq!(settings.title, "test_title");
-        assert_eq!(settings.api_type, "test_api_type");
+        assert_eq!(settings.api_type, None);
     }
 }

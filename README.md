@@ -34,3 +34,24 @@ npm run tauri dev
 
 また、以下 URL でブラウザから確認することも可能
 `http://localhost:1420/`
+
+## デバッグ
+
+デバッグではフロントとバックエンドを別々に起動する必要がある（rustのデバッグのため）
+
+```bash
+npm run vite
+```
+
+フロントエンド実行後にバックエンドを実行する
+
+### デバッグ（フロント）
+
+`Cmd + Option + i` を押すと開発者ツールが出てくる
+
+### デバッグ（バックエンド）
+
+tauri公式を参考に設定
+
+- [RustRover](https://tauri.app/v1/guides/debugging/clion)
+- [Vs Code](https://tauri.app/v1/guides/debugging/vs-code)
