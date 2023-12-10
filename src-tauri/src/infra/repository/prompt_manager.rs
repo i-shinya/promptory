@@ -36,7 +36,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         let setting = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set(title.to_string()),
-            api_type: ActiveValue::Set(None),
+            api_type: ActiveValue::Set(None), // 初期値はNone
         };
         let res = PromptManager::insert(setting)
             .exec(self.db.as_ref())
@@ -94,7 +94,7 @@ mod tests {
         let _ = PromptManager::insert(setting)
             .exec(db.as_ref())
             .await
-            .unwrap();
+            .expect("Failed to insert prompt manager");
 
         let result = repo.find_prompt_manager().await;
         assert!(result.is_ok());
@@ -120,7 +120,7 @@ mod tests {
         let settings = PromptManager::find_by_id(id)
             .one(db.as_ref())
             .await
-            .unwrap();
+            .expect("Failed to insert prompt manager");
         let settings = settings.unwrap();
         assert_eq!(settings.title, "test_title");
         assert_eq!(settings.api_type, None);

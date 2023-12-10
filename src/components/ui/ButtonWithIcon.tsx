@@ -2,7 +2,7 @@ import { FormEvent } from 'react'
 
 export interface ButtonWithIconProps {
   text: string
-  type?: 'submit'
+  type: 'submit' | 'button' | 'reset'
   icon: string
   color?: 'info' | 'warn'
   onClick?: () => void

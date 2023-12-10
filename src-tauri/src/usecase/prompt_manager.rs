@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -51,7 +53,7 @@ pub struct PromptManagerItem {
 
 #[async_trait]
 pub trait PromptManager: Send + Sync {
-    async fn save_prompt_manager(
+    async fn create_prompt_manager(
         &self,
         request: CreatePromptManagerRequest,
     ) -> Result<CreatePromptManagerResponse, ApplicationError>;
@@ -67,7 +69,7 @@ pub struct PromptManagerUsecase<T>
 where
     T: PromptManagerRepository,
 {
-    prompt_manager_repository: T,
+    prompt_manager_repository: Arc<T>,
 }
 
 #[async_trait]
@@ -75,7 +77,7 @@ impl<T> PromptManager for PromptManagerUsecase<T>
 where
     T: PromptManagerRepository,
 {
-    async fn save_prompt_manager(
+    async fn create_prompt_manager(
         &self,
         request: CreatePromptManagerRequest,
     ) -> Result<CreatePromptManagerResponse, ApplicationError> {
@@ -87,7 +89,7 @@ where
         match res {
             Ok(id) => Ok(CreatePromptManagerResponse { id }),
             Err(err) => {
-                log::error!("post_chat error: {}", err);
+                log::error!("create_prompt_manager error: {}", err);
                 Err(err)
             }
         }
@@ -110,7 +112,10 @@ where
                     .collect();
                 Ok(GetPromptManagerResponse { managers })
             }
-            Err(err) => Err(err),
+            Err(err) => {
+                log::error!("get_prompt_managers error: {}", err);
+                Err(err)
+            }
         }
     }
 }
@@ -119,7 +124,7 @@ impl<T> PromptManagerUsecase<T>
 where
     T: PromptManagerRepository,
 {
-    pub fn new(prompt_manager_repository: T) -> Self {
+    pub fn new(prompt_manager_repository: Arc<T>) -> Self {
         PromptManagerUsecase {
             prompt_manager_repository,
         }
@@ -128,6 +133,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use async_trait::async_trait;
     use sea_orm::DbErr;
 
@@ -170,13 +177,13 @@ mod tests {
     async fn test_save_prompt_manager() {
         let mock_repository = MockPromptManagersRepository {};
         let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: mock_repository,
+            prompt_manager_repository: Arc::new(mock_repository),
         };
         let request = CreatePromptManagerRequest {
             title: "Test title".to_string(),
             api_type: Option::from(APIType::Chat),
         };
-        let result = prompt_manager_usecase.save_prompt_manager(request).await;
+        let result = prompt_manager_usecase.create_prompt_manager(request).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, 1);
     }
@@ -185,13 +192,13 @@ mod tests {
     async fn test_save_prompt_manager_error() {
         let mock_repository = MockPromptManagersRepositoryError {};
         let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: mock_repository,
+            prompt_manager_repository: Arc::new(mock_repository),
         };
         let request = CreatePromptManagerRequest {
             title: "Test title".to_string(),
             api_type: Option::from(APIType::Chat),
         };
-        let result = prompt_manager_usecase.save_prompt_manager(request).await;
+        let result = prompt_manager_usecase.create_prompt_manager(request).await;
         assert!(result.is_err());
     }
 
@@ -199,7 +206,7 @@ mod tests {
     async fn test_get_prompt_managers() {
         let mock_repository = MockPromptManagersRepository {};
         let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: mock_repository,
+            prompt_manager_repository: Arc::new(mock_repository),
         };
         let request = GetPromptManagerRequest {};
         let result = prompt_manager_usecase.get_prompt_managers(request).await;
@@ -211,7 +218,7 @@ mod tests {
     async fn test_get_prompt_managers_error() {
         let mock_repository = MockPromptManagersRepositoryError {};
         let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: mock_repository,
+            prompt_manager_repository: Arc::new(mock_repository),
         };
         let request = GetPromptManagerRequest {};
         let result = prompt_manager_usecase.get_prompt_managers(request).await;

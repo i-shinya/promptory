@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -26,8 +28,8 @@ where
     T: AIChat,
     R: PromptManagerRepository,
 {
-    ai_chat: T,
-    settings_repository: R,
+    ai_chat: Arc<T>,
+    prompt_manager_repository: Arc<R>,
 }
 
 #[async_trait]
@@ -54,7 +56,7 @@ where
 
         // DBに永続化
         let res = self
-            .settings_repository
+            .prompt_manager_repository
             .create_prompt_manager("title")
             .await;
         match res {
@@ -72,10 +74,10 @@ where
     T: AIChat,
     R: PromptManagerRepository,
 {
-    pub fn new(chat: T, setting_repository: R) -> Self {
+    pub fn new(chat: Arc<T>, prompt_manager_repository: Arc<R>) -> Self {
         ChatUsecase {
             ai_chat: chat,
-            settings_repository: setting_repository,
+            prompt_manager_repository,
         }
     }
 }
@@ -118,8 +120,8 @@ mod tests {
         let mock_chat = MockAIChat {};
         let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
@@ -147,8 +149,8 @@ mod tests {
         let mock_chat = MockAIChatError {};
         let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
@@ -185,8 +187,8 @@ mod tests {
         let mock_chat = MockAIChat {};
         let mock_settings_repository = MockSettingsRepositoryError {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,

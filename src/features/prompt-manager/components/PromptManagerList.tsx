@@ -7,7 +7,7 @@ export interface PromptManagerListProps {
   promptManagers: PromptManager[]
   onClickPromptManager: (id: number) => void
   onClickDeletePromptManager: (id: number) => void
-  handleSavePropmtManager: (title: string) => void
+  handleSavePromptManager: (title: string) => void
   isVisibleNewManagerForm: boolean
   setIsVisibleNewManagerForm: (isVisible: boolean) => void
 }
@@ -16,7 +16,7 @@ const PromptManagerList = ({
   promptManagers,
   onClickPromptManager,
   onClickDeletePromptManager,
-  handleSavePropmtManager,
+  handleSavePromptManager: handleSavePromptManager,
   isVisibleNewManagerForm: isTemporaryPromptManagerVisible,
   setIsVisibleNewManagerForm: setIsTemporaryPromptManagerVisible,
 }: PromptManagerListProps) => {
@@ -38,7 +38,7 @@ const PromptManagerList = ({
           ))}
           {isTemporaryPromptManagerVisible && (
             <TemporaryPromptManagerCard
-              handleSubmit={handleSavePropmtManager}
+              handleSubmit={handleSavePromptManager}
               onClickCancel={() => setIsTemporaryPromptManagerVisible(false)}
             />
           )}

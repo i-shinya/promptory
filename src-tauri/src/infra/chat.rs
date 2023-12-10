@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
@@ -13,7 +15,7 @@ pub struct OpenAIChat<T>
 where
     T: AIClient,
 {
-    client: T,
+    client: Arc<T>,
 }
 
 #[async_trait]
@@ -48,7 +50,7 @@ impl<T> OpenAIChat<T>
 where
     T: AIClient,
 {
-    pub fn new(client: T) -> Self {
+    pub fn new(client: Arc<T>) -> Self {
         OpenAIChat { client }
     }
 
@@ -121,7 +123,7 @@ mod tests {
         }
 
         let mock_chat = OpenAIChat {
-            client: MockOpenAIClient {},
+            client: Arc::new(MockOpenAIClient {}),
         };
         let settings = ChatSettings {
             id: 0,
@@ -156,7 +158,7 @@ mod tests {
         }
 
         let mock_chat = OpenAIChat {
-            client: MockOpenAIClient,
+            client: Arc::new(MockOpenAIClient),
         };
         let settings = ChatSettings {
             id: 0,

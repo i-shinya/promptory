@@ -38,7 +38,7 @@ pub async fn create_prompt_manager(
 ) -> Result<String, String> {
     let res = log_ipc!(
         get_controller().prompt_manager,
-        save_prompt_manager,
+        create_prompt_manager,
         request
     );
     match res {

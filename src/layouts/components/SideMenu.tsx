@@ -37,9 +37,6 @@ const SideMenu = () => {
   }
 
   const savePromptManager = async (title: string) => {
-    if (title === '') {
-      return
-    }
     try {
       const id = await createPromptManagerAction(title)
       console.log(id)
@@ -69,7 +66,7 @@ const SideMenu = () => {
         promptManagers={promptManagers}
         onClickPromptManager={selectPromptManager}
         onClickDeletePromptManager={deletePromptManager}
-        handleSavePropmtManager={savePromptManager}
+        handleSavePromptManager={savePromptManager}
         isVisibleNewManagerForm={isVisibleNewManagerForm}
         setIsVisibleNewManagerForm={setIsVisibleNewManagerForm}
       />

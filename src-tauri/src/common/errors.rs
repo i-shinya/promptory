@@ -12,4 +12,6 @@ pub enum ApplicationError {
     DBError(#[from] DbErr),
     #[error("entity error: {0}")]
     DBEntityError(String),
+    #[error("parse error: {0}")]
+    ParseError(String),
 }

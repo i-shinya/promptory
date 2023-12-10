@@ -19,6 +19,9 @@ const TemporaryPromptManagerCard = ({
         onSubmit={(e: FormEvent) => {
           const value = title.trim()
           e.preventDefault()
+          if (value === '') {
+            return
+          }
           handleSubmit(value)
         }}
       >
@@ -34,6 +37,7 @@ const TemporaryPromptManagerCard = ({
           <div className="flex justify-end gap-2 mt-2">
             <ButtonWithIcon
               text="Cancel"
+              type="button"
               icon="i-solar-close-circle-bold"
               color="warn"
               onClick={onClickCancel}
