@@ -20,7 +20,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(PromptManager::Title).string().not_null())
-                    .col(ColumnDef::new(PromptManager::ApiType).string().not_null())
+                    .col(ColumnDef::new(PromptManager::ApiType).string())
                     .to_owned(),
             )
             .await?;

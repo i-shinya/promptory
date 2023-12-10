@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -26,8 +28,8 @@ where
     T: AIChat,
     R: PromptManagerRepository,
 {
-    ai_chat: T,
-    settings_repository: R,
+    ai_chat: Arc<T>,
+    prompt_manager_repository: Arc<R>,
 }
 
 #[async_trait]
@@ -54,8 +56,8 @@ where
 
         // DBに永続化
         let res = self
-            .settings_repository
-            .create_settings("title", "api_type")
+            .prompt_manager_repository
+            .create_prompt_manager("title")
             .await;
         match res {
             Ok(_) => Ok(answer),
@@ -72,10 +74,10 @@ where
     T: AIChat,
     R: PromptManagerRepository,
 {
-    pub fn new(chat: T, setting_repository: R) -> Self {
+    pub fn new(chat: Arc<T>, prompt_manager_repository: Arc<R>) -> Self {
         ChatUsecase {
             ai_chat: chat,
-            settings_repository: setting_repository,
+            prompt_manager_repository,
         }
     }
 }
@@ -103,15 +105,11 @@ mod tests {
 
     #[async_trait]
     impl PromptManagerRepository for MockSettingsRepository {
-        async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+        async fn find_prompt_manager(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
             Ok(Vec::new())
         }
 
-        async fn create_settings(
-            &self,
-            _title: &str,
-            _api_type: &str,
-        ) -> Result<i32, ApplicationError> {
+        async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
             Ok(1)
         }
     }
@@ -122,8 +120,8 @@ mod tests {
         let mock_chat = MockAIChat {};
         let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
@@ -151,8 +149,8 @@ mod tests {
         let mock_chat = MockAIChatError {};
         let mock_settings_repository = MockSettingsRepository {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
@@ -170,17 +168,15 @@ mod tests {
         struct MockSettingsRepositoryError {}
         #[async_trait]
         impl PromptManagerRepository for MockSettingsRepositoryError {
-            async fn find_settings(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
+            async fn find_prompt_manager(
+                &self,
+            ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
             }
 
-            async fn create_settings(
-                &self,
-                _title: &str,
-                _api_type: &str,
-            ) -> Result<i32, ApplicationError> {
+            async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
@@ -191,8 +187,8 @@ mod tests {
         let mock_chat = MockAIChat {};
         let mock_settings_repository = MockSettingsRepositoryError {};
         let chat_usecase = ChatUsecase {
-            ai_chat: mock_chat,
-            settings_repository: mock_settings_repository,
+            ai_chat: Arc::new(mock_chat),
+            prompt_manager_repository: Arc::new(mock_settings_repository),
         };
         let request = ChatRequest {
             user_prompt: expected_prompt,
