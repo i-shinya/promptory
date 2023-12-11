@@ -10,7 +10,12 @@ This template should help get you started developing with Tauri, React and Types
 
 ### migration
 
-アプリ起動時に自動的に migration するようにした
+APP_EXECUTION_MODEがdevの場合は自動マイグレーションを行わず、手動でのmigrationを行う
+
+```bash
+cargo run --package promptory --bin migrate
+```
+
 
 #### add migration file
 
@@ -55,3 +60,5 @@ tauri公式を参考に設定
 
 - [RustRover](https://tauri.app/v1/guides/debugging/clion)
 - [Vs Code](https://tauri.app/v1/guides/debugging/vs-code)
+
+※ cargoに独自バイナリを定義した関係で`cargo run --bin promptory --bin promptory` とした（RustRover）
