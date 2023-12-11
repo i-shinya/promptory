@@ -115,8 +115,8 @@ mod tests {
             Ok(1)
         }
 
-        async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<i32, ApplicationError> {
-            Ok(1)
+        async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<(), ApplicationError> {
+            Ok(())
         }
     }
 
@@ -191,7 +191,7 @@ mod tests {
             async fn logical_delete_prompt_manager(
                 &self,
                 _id: i32,
-            ) -> Result<i32, ApplicationError> {
+            ) -> Result<(), ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))

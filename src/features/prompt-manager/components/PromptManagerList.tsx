@@ -36,13 +36,13 @@ const PromptManagerList = ({
               onClickDeletePromptManager={onClickDeletePromptManager}
             />
           ))}
-          {isTemporaryPromptManagerVisible && (
-            <TemporaryPromptManagerCard
-              handleSubmit={handleSavePromptManager}
-              onClickCancel={() => setIsTemporaryPromptManagerVisible(false)}
-            />
-          )}
         </>
+      )}
+      {isTemporaryPromptManagerVisible && (
+        <TemporaryPromptManagerCard
+          handleSubmit={handleSavePromptManager}
+          onClickCancel={() => setIsTemporaryPromptManagerVisible(false)}
+        />
       )}
     </div>
   )

@@ -49,6 +49,7 @@ pub struct PromptManagerItem {
     pub id: i32,
     pub title: String,
     pub api_type: Option<APIType>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -59,15 +60,15 @@ pub struct DeletePromptManagerRequest {
 
 #[async_trait]
 pub trait PromptManager: Send + Sync {
-    async fn create_prompt_manager(
-        &self,
-        request: CreatePromptManagerRequest,
-    ) -> Result<CreatePromptManagerResponse, ApplicationError>;
-
     async fn get_prompt_managers(
         &self,
         request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError>;
+
+    async fn create_prompt_manager(
+        &self,
+        request: CreatePromptManagerRequest,
+    ) -> Result<CreatePromptManagerResponse, ApplicationError>;
 
     async fn logical_delete_prompt_managers(
         &self,
@@ -88,24 +89,6 @@ impl<T> PromptManager for PromptManagerUsecase<T>
 where
     T: PromptManagerRepository,
 {
-    async fn create_prompt_manager(
-        &self,
-        request: CreatePromptManagerRequest,
-    ) -> Result<CreatePromptManagerResponse, ApplicationError> {
-        let res = self
-            .prompt_manager_repository
-            .create_prompt_manager(request.title.as_str())
-            .await;
-
-        match res {
-            Ok(id) => Ok(CreatePromptManagerResponse { id }),
-            Err(err) => {
-                log::error!("create_prompt_manager error: {}", err);
-                Err(err)
-            }
-        }
-    }
-
     async fn get_prompt_managers(
         &self,
         _request: GetPromptManagerRequest,
@@ -122,12 +105,31 @@ where
                         id: m.id,
                         title: m.title,
                         api_type: m.api_type,
+                        tags: Vec::new(), // TODO 別PRにてDBからタグを取得するように修正する
                     })
                     .collect();
                 Ok(GetPromptManagerResponse { managers })
             }
             Err(err) => {
                 log::error!("get_prompt_managers error: {}", err);
+                Err(err)
+            }
+        }
+    }
+
+    async fn create_prompt_manager(
+        &self,
+        request: CreatePromptManagerRequest,
+    ) -> Result<CreatePromptManagerResponse, ApplicationError> {
+        let res = self
+            .prompt_manager_repository
+            .create_prompt_manager(request.title.as_str())
+            .await;
+
+        match res {
+            Ok(id) => Ok(CreatePromptManagerResponse { id }),
+            Err(err) => {
+                log::error!("create_prompt_manager error: {}", err);
                 Err(err)
             }
         }
@@ -219,6 +221,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_prompt_managers() {
+        let mock_repository = MockPromptManagersRepository {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = GetPromptManagerRequest {};
+        let result = prompt_manager_usecase.get_prompt_managers(request).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().managers.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_prompt_managers_error() {
+        let mock_repository = MockPromptManagersRepositoryError {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = GetPromptManagerRequest {};
+        let result = prompt_manager_usecase.get_prompt_managers(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
     async fn test_save_prompt_manager() {
         let mock_repository = MockPromptManagersRepository {};
         let prompt_manager_usecase = PromptManagerUsecase {
@@ -244,29 +269,6 @@ mod tests {
             api_type: Option::from(APIType::Chat),
         };
         let result = prompt_manager_usecase.create_prompt_manager(request).await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_get_prompt_managers() {
-        let mock_repository = MockPromptManagersRepository {};
-        let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: Arc::new(mock_repository),
-        };
-        let request = GetPromptManagerRequest {};
-        let result = prompt_manager_usecase.get_prompt_managers(request).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().managers.len(), 0);
-    }
-
-    #[tokio::test]
-    async fn test_get_prompt_managers_error() {
-        let mock_repository = MockPromptManagersRepositoryError {};
-        let prompt_manager_usecase = PromptManagerUsecase {
-            prompt_manager_repository: Arc::new(mock_repository),
-        };
-        let request = GetPromptManagerRequest {};
-        let result = prompt_manager_usecase.get_prompt_managers(request).await;
         assert!(result.is_err());
     }
 
