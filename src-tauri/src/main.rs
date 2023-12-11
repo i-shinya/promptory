@@ -29,9 +29,7 @@ async fn main() {
 
     // マイグレーションを実行
     if env::var("APP_EXECUTION_MODE").unwrap_or_default() == "dev" {
-        migration::migrator::Migrator::refresh(db.as_ref())
-            .await
-            .expect("Migration error");
+        println!("dev mode: skip migration");
     } else {
         migration::migrator::Migrator::up(db.as_ref(), None)
             .await
