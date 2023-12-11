@@ -31,22 +31,6 @@ fn get_controller() -> &'static Box<Controller<dyn PromptManager>> {
     CONTROLLER.get().expect("Controller is not initialized")
 }
 
-/// プロンプトマネージャーを保存する
-#[tauri::command]
-pub async fn create_prompt_manager(
-    request: usecase::prompt_manager::CreatePromptManagerRequest,
-) -> Result<String, String> {
-    let res = log_ipc!(
-        get_controller().prompt_manager,
-        create_prompt_manager,
-        request
-    );
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
-}
-
 /// プロンプトマネージャーを取得する
 #[tauri::command]
 pub async fn get_prompt_managers(
@@ -55,6 +39,22 @@ pub async fn get_prompt_managers(
     let res = log_ipc!(
         get_controller().prompt_manager,
         get_prompt_managers,
+        request
+    );
+    match res {
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+/// プロンプトマネージャーを保存する
+#[tauri::command]
+pub async fn create_prompt_manager(
+    request: usecase::prompt_manager::CreatePromptManagerRequest,
+) -> Result<String, String> {
+    let res = log_ipc!(
+        get_controller().prompt_manager,
+        create_prompt_manager,
         request
     );
     match res {

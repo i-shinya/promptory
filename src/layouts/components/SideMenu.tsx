@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PromptManagerList from '../../features/prompt-manager/components/PromptManagerList'
 import { PromptManager } from '../../features/prompt-manager/types'
 import SideMenuHeader from './SideMenuHeader'
 import { useNavigate } from 'react-router-dom'
 import {
   createPromptManagerAction,
+  getPromptManagersAction,
   logicalDeletePromptManagerAction,
 } from '../../features/prompt-manager/actions'
 
@@ -12,18 +13,21 @@ const SideMenu = () => {
   const navigate = useNavigate()
 
   const [isVisibleNewManagerForm, setIsVisibleNewManagerForm] = useState(false)
+  const [promptManagers, setPromptManagers] = useState<PromptManager[]>([])
 
-  // TODO rust側から取得する
-  const [promptManagers, setPromptManagers] = useState<PromptManager[]>([
-    { id: 1, title: 'Chat APIお試し', apiType: 'Chat', tags: ['test', 'chat'] },
-    { id: 2, title: 'Assistant APIお試し', apiType: 'Assistant', tags: [] },
-    {
-      id: 3,
-      title: 'Assistant APIお試し2',
-      apiType: 'Assistant',
-      tags: ['test', 'sample'],
-    },
-  ])
+  useEffect(() => {
+    const fetchPromptManagers = async () => {
+      try {
+        const res = await getPromptManagersAction()
+        console.log(res)
+        setPromptManagers(res.managers)
+      } catch (error) {
+        // TODO react notificationを追加してエラー時にトーストを表示するようにする
+        console.error('Failed to fetch prompt managers:', error)
+      }
+    }
+    fetchPromptManagers()
+  }, [])
 
   const selectPromptManager = (id: number) => {
     // TODO 詳細画面を作成したらそちらに遷移するようにする

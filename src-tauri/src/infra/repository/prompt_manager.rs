@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+};
 
 use crate::common::errors::ApplicationError;
 use crate::domain::prompt_manager::{PromptManagerModel, PromptManagerRepository};
@@ -16,10 +18,13 @@ pub struct PromptManagerRepositoryImpl {
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
     async fn find_all_prompt_managers(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
-        let settings = PromptManager::find().all(self.db.as_ref()).await;
-        match settings {
-            Ok(setting) => Ok({
-                setting
+        let prompt_managers = PromptManager::find()
+            .filter(prompt_manager::Column::DeletedAt.is_null())
+            .all(self.db.as_ref())
+            .await;
+        match prompt_managers {
+            Ok(prompt_manager) => Ok({
+                prompt_manager
                     .into_iter()
                     .map(|s| PromptManagerModel {
                         id: s.id,
