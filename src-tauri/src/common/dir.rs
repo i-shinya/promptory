@@ -39,6 +39,7 @@ pub fn get_app_home_path() -> Result<String, ApplicationError> {
     };
 }
 
+/// テスト用のDBパスを取得
 pub fn get_test_home_path() -> Result<String, ApplicationError> {
     // テスト用
     let path = PathBuf::from("../data/test");

@@ -77,32 +77,13 @@ impl PromptManagerRepositoryImpl {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use sea_orm::{ActiveValue, EntityTrait};
 
-    use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
-    use sea_orm_migration::MigratorTrait;
-
+    use crate::common::thelper::db::setup_db;
     use crate::domain::prompt_manager::{APIType, PromptManagerRepository};
     use crate::infra::repository::entities::prelude::PromptManager;
     use crate::infra::repository::entities::prompt_manager;
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
-    use crate::{common, infra, migration};
-
-    async fn setup_db(test_name: &str) -> Arc<DatabaseConnection> {
-        let db_file_path = common::dir::get_test_home_path().expect("Cannot get db path");
-        let db_file_path = format!("{}/{}", db_file_path, test_name);
-        common::dir::make_parent_dir_if_not_exists(&db_file_path).expect("Cannot make parent dir");
-
-        let db = infra::core::seaorm::new(&db_file_path)
-            .await
-            .expect("Cannot connect to DB");
-        let db = Arc::new(db);
-
-        migration::migrator::Migrator::refresh(db.as_ref())
-            .await
-            .expect("Migration error");
-        db
-    }
 
     #[tokio::test]
     async fn test_find_settings() {
@@ -155,7 +136,6 @@ mod tests {
         let db = setup_db("test_logical_delete").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
-        // まずは設定を作成
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
