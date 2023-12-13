@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait,
+    QueryFilter,
 };
 
 use crate::common::errors::ApplicationError;
 use crate::domain::prompt_manager::{PromptManagerModel, PromptManagerRepository};
-use crate::infra::repository::entities::prelude::PromptManager;
-use crate::infra::repository::entities::prompt_manager;
+use crate::infra::repository::entities::prelude::{PromptManager, Tag};
+use crate::infra::repository::entities::{prompt_manager, tag};
 
 #[derive(Clone, Debug)]
 pub struct PromptManagerRepositoryImpl {
@@ -18,23 +19,23 @@ pub struct PromptManagerRepositoryImpl {
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
     async fn find_all_prompt_managers(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
-        let prompt_managers = PromptManager::find()
+        let prompt_managers: Vec<(prompt_manager::Model, Vec<tag::Model>)> = PromptManager::find()
             .filter(prompt_manager::Column::DeletedAt.is_null())
+            .find_with_related(Tag)
             .all(self.db.as_ref())
-            .await;
-        match prompt_managers {
-            Ok(prompt_manager) => Ok({
-                prompt_manager
-                    .into_iter()
-                    .map(|s| PromptManagerModel {
-                        id: s.id,
-                        title: s.title,
-                        api_type: s.api_type.map(|a| a.parse().unwrap()),
-                    })
-                    .collect()
-            }),
-            Err(err) => Err(ApplicationError::DBError(err)),
-        }
+            .await?;
+
+        Ok({
+            prompt_managers
+                .into_iter()
+                .map(|s| PromptManagerModel {
+                    id: s.0.id,
+                    title: s.0.title,
+                    api_type: s.0.api_type.map(|a| a.parse().unwrap()),
+                    tags: s.1.into_iter().map(|t| t.value).collect(),
+                })
+                .collect()
+        })
     }
 
     async fn create_prompt_manager(&self, title: &str) -> Result<i32, ApplicationError> {
@@ -77,35 +78,16 @@ impl PromptManagerRepositoryImpl {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use sea_orm::{ActiveValue, EntityTrait};
 
-    use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
-    use sea_orm_migration::MigratorTrait;
-
+    use crate::common::thelper::db::setup_db;
     use crate::domain::prompt_manager::{APIType, PromptManagerRepository};
-    use crate::infra::repository::entities::prelude::PromptManager;
-    use crate::infra::repository::entities::prompt_manager;
+    use crate::infra::repository::entities::prelude::{PromptManager, PromptManagerTag, Tag};
+    use crate::infra::repository::entities::{prompt_manager, prompt_manager_tag, tag};
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
-    use crate::{common, infra, migration};
-
-    async fn setup_db(test_name: &str) -> Arc<DatabaseConnection> {
-        let db_file_path = common::dir::get_test_home_path().expect("Cannot get db path");
-        let db_file_path = format!("{}/{}", db_file_path, test_name);
-        common::dir::make_parent_dir_if_not_exists(&db_file_path).expect("Cannot make parent dir");
-
-        let db = infra::core::seaorm::new(&db_file_path)
-            .await
-            .expect("Cannot connect to DB");
-        let db = Arc::new(db);
-
-        migration::migrator::Migrator::refresh(db.as_ref())
-            .await
-            .expect("Migration error");
-        db
-    }
 
     #[tokio::test]
-    async fn test_find_settings() {
+    async fn test_find_all_prompt_managers() {
         let db = setup_db("test_find_settings").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
@@ -115,19 +97,40 @@ mod tests {
             api_type: ActiveValue::Set(Option::from(APIType::Chat.to_string())),
             deleted_at: ActiveValue::Set(None),
         };
-        let _ = PromptManager::insert(prompt_manager)
+        let inserted_prompt_manager = PromptManager::insert(prompt_manager)
             .exec(db.as_ref())
             .await
             .expect("Failed to insert prompt manager");
+        let prompt_manager_id = inserted_prompt_manager.last_insert_id;
+
+        let tag = tag::ActiveModel {
+            id: Default::default(),
+            value: ActiveValue::Set("test_tag".to_string()),
+        };
+        let inserted_tag = Tag::insert(tag)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert tag");
+        let tag_id = inserted_tag.last_insert_id;
+        let prompt_manager_tag = prompt_manager_tag::ActiveModel {
+            id: Default::default(),
+            prompt_manager_id: ActiveValue::Set(prompt_manager_id),
+            tag_id: ActiveValue::Set(tag_id),
+        };
+        PromptManagerTag::insert(prompt_manager_tag)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert into prompt_manager_tag");
 
         let result = repo.find_all_prompt_managers().await;
         assert!(result.is_ok());
-        let settings = result.unwrap();
+        let managers = result.unwrap();
 
         // assert
-        assert_eq!(settings.len(), 1);
-        assert_eq!(settings[0].title, "test_title");
-        assert_eq!(settings[0].api_type, Some(APIType::Chat));
+        assert_eq!(managers.len(), 1);
+        assert_eq!(managers[0].title, "test_title");
+        assert_eq!(managers[0].api_type, Some(APIType::Chat));
+        assert_eq!(managers[0].tags[0], "test_tag");
     }
 
     #[tokio::test]
@@ -155,7 +158,6 @@ mod tests {
         let db = setup_db("test_logical_delete").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
-        // まずは設定を作成
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),

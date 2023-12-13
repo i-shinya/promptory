@@ -93,11 +93,12 @@ where
         &self,
         _request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError> {
-        let res = self
+        let prompt_managers = self
             .prompt_manager_repository
             .find_all_prompt_managers()
             .await;
-        match res {
+
+        match prompt_managers {
             Ok(mana) => {
                 let managers = mana
                     .into_iter()
