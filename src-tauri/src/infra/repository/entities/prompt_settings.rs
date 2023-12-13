@@ -3,12 +3,12 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "setting_versions")]
+#[sea_orm(table_name = "prompt_settings")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub version: i32,
-    pub setting_id: i32,
+    pub manager_id: i32,
+    pub current_version: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -17,16 +17,16 @@ pub enum Relation {
     AssistantSettings,
     #[sea_orm(has_many = "super::chat_settings::Entity")]
     ChatSettings,
-    #[sea_orm(has_many = "super::run_histories::Entity")]
-    RunHistories,
     #[sea_orm(
-        belongs_to = "super::settings::Entity",
-        from = "Column::SettingId",
-        to = "super::settings::Column::Id",
+        belongs_to = "super::prompt_manager::Entity",
+        from = "Column::ManagerId",
+        to = "super::prompt_manager::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Settings,
+    PromptManager,
+    #[sea_orm(has_many = "super::prompt_setting_versions::Entity")]
+    PromptSettingVersions,
 }
 
 impl Related<super::assistant_settings::Entity> for Entity {
@@ -41,15 +41,15 @@ impl Related<super::chat_settings::Entity> for Entity {
     }
 }
 
-impl Related<super::run_histories::Entity> for Entity {
+impl Related<super::prompt_manager::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RunHistories.def()
+        Relation::PromptManager.def()
     }
 }
 
-impl Related<super::settings::Entity> for Entity {
+impl Related<super::prompt_setting_versions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Settings.def()
+        Relation::PromptSettingVersions.def()
     }
 }
 

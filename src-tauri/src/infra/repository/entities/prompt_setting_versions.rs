@@ -3,30 +3,37 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "chat_settings")]
+#[sea_orm(table_name = "prompt_setting_versions")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub version_id: i32,
-    pub system_prompt: String,
-    pub response_format: String,
+    pub version: i32,
+    pub setting_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::prompt_settings::Entity",
-        from = "Column::VersionId",
+        from = "Column::SettingId",
         to = "super::prompt_settings::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
     PromptSettings,
+    #[sea_orm(has_many = "super::run_histories::Entity")]
+    RunHistories,
 }
 
 impl Related<super::prompt_settings::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::PromptSettings.def()
+    }
+}
+
+impl Related<super::run_histories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RunHistories.def()
     }
 }
 

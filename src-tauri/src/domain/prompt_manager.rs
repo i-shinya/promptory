@@ -15,6 +15,7 @@ pub struct PromptManagerModel {
     pub id: i32,
     pub title: String,
     pub api_type: Option<APIType>,
+    pub tags: Vec<String>,
 }
 
 #[async_trait]

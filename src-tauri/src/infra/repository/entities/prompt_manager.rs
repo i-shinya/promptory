@@ -14,15 +14,23 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::prompt_manger_versions::Entity")]
-    PromptMangerVersions,
+    #[sea_orm(has_many = "super::prompt_manager_tag::Entity")]
+    PromptManagerTag,
+    #[sea_orm(has_many = "super::prompt_settings::Entity")]
+    PromptSettings,
     #[sea_orm(has_many = "super::runs::Entity")]
     Runs,
 }
 
-impl Related<super::prompt_manger_versions::Entity> for Entity {
+impl Related<super::prompt_manager_tag::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::PromptMangerVersions.def()
+        Relation::PromptManagerTag.def()
+    }
+}
+
+impl Related<super::prompt_settings::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PromptSettings.def()
     }
 }
 
@@ -33,3 +41,29 @@ impl Related<super::runs::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+// impl Related<super::prompt_manager::Entity>
+//     for crate::infra::repository::entities::prompt_manager::Entity
+// {
+//     fn to() -> RelationDef {
+//         super::prompt_manager_tag::Relation::PromptManager.def()
+//     }
+//
+//     fn via() -> Option<RelationDef> {
+//         Some(super::prompt_manager_tag::Relation::Tag.def().rev())
+//     }
+// }
+
+// impl Related<super::tag::Entity> for Entity {
+//     fn to() -> RelationDef {
+//         super::prompt_manager_tag::Relation::Tag.def()
+//     }
+//
+//     fn via() -> Option<RelationDef> {
+//         Some(
+//             super::prompt_manager_tag::Relation::PromptManager
+//                 .def()
+//                 .rev(),
+//         )
+//     }
+// }

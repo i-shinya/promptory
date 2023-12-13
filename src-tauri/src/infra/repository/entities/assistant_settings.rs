@@ -14,18 +14,18 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::prompt_manger_versions::Entity",
+        belongs_to = "super::prompt_settings::Entity",
         from = "Column::VersionId",
-        to = "super::prompt_manger_versions::Column::Id",
+        to = "super::prompt_settings::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    PromptMangerVersions,
+    PromptSettings,
 }
 
-impl Related<super::prompt_manger_versions::Entity> for Entity {
+impl Related<super::prompt_settings::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::PromptMangerVersions.def()
+        Relation::PromptSettings.def()
     }
 }
 

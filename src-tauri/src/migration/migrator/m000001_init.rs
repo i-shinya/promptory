@@ -6,7 +6,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // 設定テーブル
+        // プロンプト管理テーブル
         manager
             .create_table(
                 Table::create()
@@ -26,34 +26,123 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 設定バージョンテーブル
+        // Tag テーブル
         manager
             .create_table(
                 Table::create()
-                    .table(PromptMangerVersions::Table)
+                    .table(Tag::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(PromptMangerVersions::Id)
+                        ColumnDef::new(Tag::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Tag::Value).string().not_null().unique_key())
+                    .to_owned(),
+            )
+            .await?;
+
+        // PromptManagerTag 中間テーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(PromptManagerTag::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(PromptManagerTag::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(PromptMangerVersions::Version)
+                        ColumnDef::new(PromptManagerTag::PromptManagerId)
                             .integer()
                             .not_null(),
                     )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-prompt_manager_tag-prompt_manager_id")
+                            .from(PromptManagerTag::Table, PromptManagerTag::PromptManagerId)
+                            .to(PromptManager::Table, PromptManager::Id),
+                    )
+                    .col(ColumnDef::new(PromptManagerTag::TagId).integer().not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-prompt_manager_tag-tag_id")
+                            .from(PromptManagerTag::Table, PromptManagerTag::TagId)
+                            .to(Tag::Table, Tag::Id),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // プロンプト設定テーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(PromptSettings::Table)
+                    .if_not_exists()
                     .col(
-                        ColumnDef::new(PromptMangerVersions::ManagerId)
+                        ColumnDef::new(PromptSettings::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(PromptSettings::ManagerId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-setting-versions-setting_id")
-                            .from(PromptMangerVersions::Table, PromptMangerVersions::ManagerId)
+                            .from(PromptSettings::Table, PromptSettings::ManagerId)
                             .to(PromptManager::Table, PromptManager::Id),
+                    )
+                    .col(
+                        ColumnDef::new(PromptSettings::CurrentVersion)
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // プロンプト設定のバージョンテーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(PromptSettingVersions::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(PromptSettingVersions::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(PromptSettingVersions::Version)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PromptSettingVersions::SettingId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-prompt-setting-versions-setting_id")
+                            .from(
+                                PromptSettingVersions::Table,
+                                PromptSettingVersions::SettingId,
+                            )
+                            .to(PromptSettings::Table, PromptSettings::Id),
                     )
                     .to_owned(),
             )
@@ -63,10 +152,11 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx-setting-versions-setting_id")
-                    .table(PromptMangerVersions::Table)
-                    .col(PromptMangerVersions::ManagerId)
-                    .col(PromptMangerVersions::Version)
+                    .name("unique-idx-setting-versions-setting_id")
+                    .table(PromptSettingVersions::Table)
+                    .if_not_exists()
+                    .col(PromptSettingVersions::SettingId)
+                    .col(PromptSettingVersions::Version)
                     .unique()
                     .to_owned(),
             )
@@ -124,7 +214,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-run-histories-version_id")
                             .from(RunHistories::Table, RunHistories::VersionId)
-                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
+                            .to(PromptSettingVersions::Table, PromptSettingVersions::Id),
                     )
                     .col(ColumnDef::new(RunHistories::Response).text().not_null())
                     .to_owned(),
@@ -149,7 +239,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-chat-settings-version_id")
                             .from(ChatSettings::Table, ChatSettings::VersionId)
-                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
+                            .to(PromptSettings::Table, PromptSettings::Id),
                     )
                     .col(ColumnDef::new(ChatSettings::SystemPrompt).text().not_null())
                     .col(
@@ -183,7 +273,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-assistant-settings-version_id")
                             .from(AssistantSettings::Table, AssistantSettings::VersionId)
-                            .to(PromptMangerVersions::Table, PromptMangerVersions::Id),
+                            .to(PromptSettings::Table, PromptSettings::Id),
                     )
                     .col(
                         ColumnDef::new(AssistantSettings::SystemPrompt)
@@ -230,7 +320,7 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(PromptMangerVersions::Table)
+                    .table(PromptSettings::Table)
                     .if_exists()
                     .to_owned(),
             )
@@ -257,11 +347,34 @@ enum PromptManager {
 }
 
 #[derive(DeriveIden)]
-enum PromptMangerVersions {
+enum Tag {
+    Table,
+    Id,
+    Value,
+}
+
+#[derive(DeriveIden)]
+enum PromptManagerTag {
+    Table,
+    Id,
+    PromptManagerId,
+    TagId,
+}
+
+#[derive(DeriveIden)]
+enum PromptSettings {
+    Table,
+    Id,
+    ManagerId,
+    CurrentVersion, // 現在のバージョン、PromptSettingVersionsのバージョンと同じ値を設定する
+}
+
+#[derive(DeriveIden)]
+enum PromptSettingVersions {
     Table,
     Id,
     Version,
-    ManagerId,
+    SettingId,
 }
 
 #[derive(DeriveIden)]
