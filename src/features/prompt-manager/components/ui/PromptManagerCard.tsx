@@ -24,7 +24,7 @@ const PromptManagerCard = ({
       >
         <div className="flex flex-row justify-between">
           <span className="px-2 text-sm border-l-4 border-solid border-white">
-            {item.apiType}
+            {item.actionType}
           </span>
           <IconButton
             icon="i-solar-trash-bin-trash-bold"

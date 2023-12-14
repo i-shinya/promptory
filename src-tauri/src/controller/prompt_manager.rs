@@ -63,18 +63,34 @@ pub async fn create_prompt_manager(
     }
 }
 
+/// プロンプトマネージャーを更新する
+#[tauri::command]
+pub async fn update_prompt_manager(
+    request: usecase::prompt_manager::UpdatePromptManagerRequest,
+) -> Result<String, String> {
+    let res = log_ipc!(
+        get_controller().prompt_manager,
+        update_prompt_manager,
+        request
+    );
+    match res {
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
 /// プロンプトマネージャーを削除する
 #[tauri::command]
 pub async fn logical_delete_prompt_manager(
     request: usecase::prompt_manager::DeletePromptManagerRequest,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let res = log_ipc!(
         get_controller().prompt_manager,
         logical_delete_prompt_managers,
         request
     );
     match res {
-        Ok(_) => Ok(()),
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
         Err(err) => Err(err.to_string()),
     }
 }

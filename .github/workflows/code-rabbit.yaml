@@ -49,6 +49,7 @@ jobs:
             !**/package-lock.json
             !src-tauri/src/infra/repository/entities/**
             !**/README.md
+            !**/docs/**
             !**/**.config.js
             !**/code-rabbit.yaml
           system_message: |

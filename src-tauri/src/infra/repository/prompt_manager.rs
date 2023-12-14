@@ -7,7 +7,9 @@ use sea_orm::{
 };
 
 use crate::common::errors::ApplicationError;
-use crate::domain::prompt_manager::{PromptManagerModel, PromptManagerRepository};
+use crate::domain::prompt_manager::{
+    APIType, ActionType, PromptManagerModel, PromptManagerRepository,
+};
 use crate::infra::repository::entities::prelude::{PromptManager, Tag};
 use crate::infra::repository::entities::{prompt_manager, tag};
 
@@ -31,7 +33,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
                 .map(|s| PromptManagerModel {
                     id: s.0.id,
                     title: s.0.title,
-                    api_type: s.0.api_type.map(|a| a.parse().unwrap()),
+                    action_type: s.0.action_type.map(|a| a.parse().unwrap()),
                     tags: s.1.into_iter().map(|t| t.value).collect(),
                 })
                 .collect()
@@ -42,14 +44,40 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set(title.to_string()),
-            api_type: ActiveValue::Set(None),   // 初期値はNone
-            deleted_at: ActiveValue::Set(None), // 初期値はNone
+            action_type: ActiveValue::Set(None), // 初期値はNone
+            api_type: ActiveValue::Set(None),    // 初期値はNone
+            deleted_at: ActiveValue::Set(None),  // 初期値はNone
         };
         let res = PromptManager::insert(prompt_manager)
             .exec(self.db.as_ref())
             .await
             .map_err(ApplicationError::DBError)?;
         Ok(res.last_insert_id)
+    }
+
+    async fn update_prompt_manager(
+        &self,
+        id: i32,
+        title: &str,
+        action_type: Option<ActionType>,
+        api_type: Option<APIType>,
+    ) -> Result<(), ApplicationError> {
+        let prompt_manager = PromptManager::find_by_id(id)
+            .one(self.db.as_ref())
+            .await
+            .map_err(ApplicationError::DBError)?;
+        if prompt_manager.is_none() {
+            return Err(ApplicationError::EmptyResult);
+        }
+        let mut prompt_manager: prompt_manager::ActiveModel = prompt_manager.unwrap().into();
+        prompt_manager.title = ActiveValue::Set(title.to_string());
+        prompt_manager.action_type = ActiveValue::Set(action_type.map(|a| a.to_string()));
+        prompt_manager.api_type = ActiveValue::Set(api_type.map(|a| a.to_string()));
+        let _ = prompt_manager
+            .update(self.db.as_ref())
+            .await
+            .map_err(ApplicationError::DBError)?;
+        Ok(())
     }
 
     async fn logical_delete_prompt_manager(&self, id: i32) -> Result<(), ApplicationError> {
@@ -62,7 +90,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         }
         let mut prompt_manager: prompt_manager::ActiveModel = prompt_manager.unwrap().into();
         prompt_manager.deleted_at = ActiveValue::Set(Some(chrono::Utc::now().to_string()));
-        let res = prompt_manager
+        let _ = prompt_manager
             .update(self.db.as_ref())
             .await
             .map_err(ApplicationError::DBError)?;
@@ -81,7 +109,7 @@ mod tests {
     use sea_orm::{ActiveValue, EntityTrait};
 
     use crate::common::thelper::db::setup_db;
-    use crate::domain::prompt_manager::{APIType, PromptManagerRepository};
+    use crate::domain::prompt_manager::{APIType, ActionType, PromptManagerRepository};
     use crate::infra::repository::entities::prelude::{PromptManager, PromptManagerTag, Tag};
     use crate::infra::repository::entities::{prompt_manager, prompt_manager_tag, tag};
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
@@ -94,7 +122,8 @@ mod tests {
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
-            api_type: ActiveValue::Set(Option::from(APIType::Chat.to_string())),
+            action_type: ActiveValue::Set(Option::from(ActionType::ComparingPrompt.to_string())),
+            api_type: ActiveValue::Set(None),
             deleted_at: ActiveValue::Set(None),
         };
         let inserted_prompt_manager = PromptManager::insert(prompt_manager)
@@ -129,16 +158,16 @@ mod tests {
         // assert
         assert_eq!(managers.len(), 1);
         assert_eq!(managers[0].title, "test_title");
-        assert_eq!(managers[0].api_type, Some(APIType::Chat));
+        assert_eq!(managers[0].action_type, Some(ActionType::ComparingPrompt));
         assert_eq!(managers[0].tags[0], "test_tag");
     }
 
     #[tokio::test]
-    async fn test_create_settings() {
-        let db = setup_db("test_create_settings").await;
+    async fn test_create_prompt_managers() {
+        let db = setup_db("test_create_prompt_managers").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
-        // create_settingsメソッドを呼び出し
+        // create_prompt_managerメソッドを呼び出し
         let result = repo.create_prompt_manager("test_title").await;
         assert!(result.is_ok());
         let id = result.unwrap();
@@ -150,18 +179,61 @@ mod tests {
             .expect("Failed to insert prompt manager");
         let settings = prompt_managers.unwrap();
         assert_eq!(settings.title, "test_title");
-        assert_eq!(settings.api_type, None);
+        assert_eq!(settings.action_type, None);
     }
 
     #[tokio::test]
-    async fn test_logical_delete() {
-        let db = setup_db("test_logical_delete").await;
+    async fn test_update_prompt_managers() {
+        let db = setup_db("test_update_prompt_managers").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
-            api_type: ActiveValue::Set(Option::from(APIType::Chat.to_string())),
+            action_type: ActiveValue::Set(None),
+            api_type: ActiveValue::Set(None),
+            deleted_at: ActiveValue::Set(None),
+        };
+        let inserted_prompt_manager = PromptManager::insert(prompt_manager)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert prompt manager");
+        let prompt_manager_id = inserted_prompt_manager.last_insert_id;
+
+        // update_prompt_managerメソッドを呼び出し
+        let result = repo
+            .update_prompt_manager(
+                prompt_manager_id,
+                "test_title2",
+                Some(ActionType::ComparingModel),
+                Some(APIType::Chat),
+            )
+            .await;
+        assert!(result.is_ok());
+
+        // assert
+        let prompt_managers = PromptManager::find_by_id(prompt_manager_id)
+            .one(db.as_ref())
+            .await
+            .expect("Failed to insert prompt manager");
+        let settings = prompt_managers.unwrap();
+        assert_eq!(settings.title, "test_title2");
+        assert_eq!(
+            settings.action_type,
+            Some(ActionType::ComparingModel.to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_logical_delete_prompt_managers() {
+        let db = setup_db("test_logical_delete_prompt_managers").await;
+        let repo = PromptManagerRepositoryImpl::new(db.clone());
+
+        let prompt_manager = prompt_manager::ActiveModel {
+            id: Default::default(),
+            title: ActiveValue::Set("test_title".to_string()),
+            action_type: ActiveValue::Set(Option::from(ActionType::ComparingPrompt.to_string())),
+            api_type: ActiveValue::Set(None),
             deleted_at: ActiveValue::Set(None),
         };
         let _ = PromptManager::insert(prompt_manager)
@@ -183,8 +255,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_logical_delete_error() {
-        let db = setup_db("test_logical_delete_error").await;
+    async fn test_logical_delete_prompt_managers_error() {
+        let db = setup_db("test_logical_delete_prompt_managers_error").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         // 存在しないIDでlogical_deleteメソッドを呼び出し

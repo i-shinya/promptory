@@ -2,12 +2,13 @@
 
 pub mod prelude;
 
-pub mod assistant_settings;
-pub mod chat_settings;
+pub mod comparing_prompt_chat_setting_details;
+pub mod comparing_prompt_manager;
+pub mod comparing_prompt_run_histories;
+pub mod comparing_prompt_runs;
+pub mod comparing_prompt_setting_versions;
+pub mod comparing_prompt_settings;
+pub mod comparing_prompt_vision_setting_details;
 pub mod prompt_manager;
 pub mod prompt_manager_tag;
-pub mod prompt_setting_versions;
-pub mod prompt_settings;
-pub mod run_histories;
-pub mod runs;
 pub mod tag;

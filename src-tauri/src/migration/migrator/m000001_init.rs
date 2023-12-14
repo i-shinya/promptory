@@ -20,6 +20,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(PromptManager::Title).string().not_null())
+                    .col(ColumnDef::new(PromptManager::ActionType).string())
                     .col(ColumnDef::new(PromptManager::ApiType).string())
                     .col(ColumnDef::new(PromptManager::DeletedAt).timestamp())
                     .to_owned(),
@@ -64,7 +65,7 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-prompt_manager_tag-prompt_manager_id")
+                            .name("fk-prompt_manager-tag-prompt_manager_id")
                             .from(PromptManagerTag::Table, PromptManagerTag::PromptManagerId)
                             .to(PromptManager::Table, PromptManager::Id),
                     )
@@ -79,171 +80,162 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // プロンプト設定テーブル
+        // プロンプト比較管理 テーブル
         manager
             .create_table(
                 Table::create()
-                    .table(PromptSettings::Table)
+                    .table(ComparingPromptManager::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(PromptSettings::Id)
+                        ColumnDef::new(ComparingPromptManager::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(PromptSettings::ManagerId)
+                        ColumnDef::new(ComparingPromptManager::ManagerId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-setting-versions-setting_id")
-                            .from(PromptSettings::Table, PromptSettings::ManagerId)
+                            .name("fk-comparing_prompt_manager-prompt_manager_id")
+                            .from(
+                                ComparingPromptManager::Table,
+                                ComparingPromptManager::ManagerId,
+                            )
                             .to(PromptManager::Table, PromptManager::Id),
                     )
-                    .col(
-                        ColumnDef::new(PromptSettings::CurrentVersion)
-                            .integer()
-                            .not_null(),
-                    )
                     .to_owned(),
             )
             .await?;
 
-        // プロンプト設定のバージョンテーブル
+        // プロンプト比較設定テーブル
         manager
             .create_table(
                 Table::create()
-                    .table(PromptSettingVersions::Table)
+                    .table(ComparingPromptSettings::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(PromptSettingVersions::Id)
+                        ColumnDef::new(ComparingPromptSettings::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(PromptSettingVersions::Version)
-                            .integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(PromptSettingVersions::SettingId)
+                        ColumnDef::new(ComparingPromptSettings::ComparingManagerId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-prompt-setting-versions-setting_id")
+                            .name("fk-comparing_prompt_settings-comparing_prompt_manager-id")
                             .from(
-                                PromptSettingVersions::Table,
-                                PromptSettingVersions::SettingId,
+                                ComparingPromptSettings::Table,
+                                ComparingPromptSettings::ComparingManagerId,
                             )
-                            .to(PromptSettings::Table, PromptSettings::Id),
+                            .to(ComparingPromptManager::Table, ComparingPromptManager::Id),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptSettings::CurrentVersion)
+                            .integer()
+                            .not_null(),
                     )
                     .to_owned(),
             )
             .await?;
 
-        // 設定バージョンテーブルのユニークインデックス
+        // プロンプト比較設定のバージョンテーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(ComparingPromptSettingVersions::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ComparingPromptSettingVersions::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptSettingVersions::Version)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptSettingVersions::SettingId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name(
+                                "fk-comparing_prompt_setting_versions-comparing_prompt_setting-id",
+                            )
+                            .from(
+                                ComparingPromptSettingVersions::Table,
+                                ComparingPromptSettingVersions::SettingId,
+                            )
+                            .to(ComparingPromptSettings::Table, ComparingPromptSettings::Id),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptSettingVersions::SystemPrompt)
+                            .text()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // プロンプト比較設定バージョンテーブルのユニークインデックス
         manager
             .create_index(
                 Index::create()
-                    .name("unique-idx-setting-versions-setting_id")
-                    .table(PromptSettingVersions::Table)
+                    .name("unique-idx-comparing_prompt_setting_versions-setting_id-version")
+                    .table(ComparingPromptSettingVersions::Table)
                     .if_not_exists()
-                    .col(PromptSettingVersions::SettingId)
-                    .col(PromptSettingVersions::Version)
+                    .col(ComparingPromptSettingVersions::SettingId)
+                    .col(ComparingPromptSettingVersions::Version)
                     .unique()
                     .to_owned(),
             )
             .await?;
 
-        // Run テーブル
+        // プロンプト比較Chat設定詳細 テーブル
         manager
             .create_table(
                 Table::create()
-                    .table(Runs::Table)
+                    .table(ComparingPromptChatSettingDetails::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Runs::Id)
+                        ColumnDef::new(ComparingPromptChatSettingDetails::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Runs::ManagerId).integer().not_null())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-runs-setting_id")
-                            .from(Runs::Table, Runs::ManagerId)
-                            .to(PromptManager::Table, PromptManager::Id),
-                    )
-                    .col(ColumnDef::new(Runs::UserPrompt).text().not_null())
-                    .col(ColumnDef::new(Runs::Model).string().not_null())
-                    .col(ColumnDef::new(Runs::Temperature).float().not_null())
-                    .to_owned(),
-            )
-            .await?;
-
-        // RunHistory テーブル
-        manager
-            .create_table(
-                Table::create()
-                    .table(RunHistories::Table)
-                    .if_not_exists()
                     .col(
-                        ColumnDef::new(RunHistories::Id)
+                        ColumnDef::new(ComparingPromptChatSettingDetails::VersionId)
                             .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
+                            .not_null(),
                     )
-                    .col(ColumnDef::new(RunHistories::RunId).integer().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-run-histories-run_id")
-                            .from(RunHistories::Table, RunHistories::RunId)
-                            .to(Runs::Table, Runs::Id),
+                            .name("fk-comparing_prompt_chat_setting_details-comparing_prompt__setting_version-id")
+                            .from(
+                                ComparingPromptChatSettingDetails::Table,
+                                ComparingPromptChatSettingDetails::VersionId,
+                            )
+                            .to(
+                                ComparingPromptSettingVersions::Table,
+                                ComparingPromptSettingVersions::Id,
+                            ),
                     )
-                    .col(ColumnDef::new(RunHistories::VersionId).integer().not_null())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-run-histories-version_id")
-                            .from(RunHistories::Table, RunHistories::VersionId)
-                            .to(PromptSettingVersions::Table, PromptSettingVersions::Id),
-                    )
-                    .col(ColumnDef::new(RunHistories::Response).text().not_null())
-                    .to_owned(),
-            )
-            .await?;
-
-        // ChatSetting テーブル
-        manager
-            .create_table(
-                Table::create()
-                    .table(ChatSettings::Table)
-                    .if_not_exists()
                     .col(
-                        ColumnDef::new(ChatSettings::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
-                    .col(ColumnDef::new(ChatSettings::VersionId).integer().not_null())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-chat-settings-version_id")
-                            .from(ChatSettings::Table, ChatSettings::VersionId)
-                            .to(PromptSettings::Table, PromptSettings::Id),
-                    )
-                    .col(ColumnDef::new(ChatSettings::SystemPrompt).text().not_null())
-                    .col(
-                        ColumnDef::new(ChatSettings::ResponseFormat)
+                        ColumnDef::new(ComparingPromptChatSettingDetails::ResponseFormat)
                             .string()
                             .not_null(),
                     )
@@ -251,32 +243,131 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // AssistantSetting テーブル
+        // プロンプト比較Vision設定詳細 テーブル
         manager
             .create_table(
                 Table::create()
-                    .table(AssistantSettings::Table)
+                    .table(ComparingPromptVisionSettingDetails::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(AssistantSettings::Id)
+                        ColumnDef::new(ComparingPromptVisionSettingDetails::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(AssistantSettings::VersionId)
+                        ColumnDef::new(ComparingPromptVisionSettingDetails::VersionId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-assistant-settings-version_id")
-                            .from(AssistantSettings::Table, AssistantSettings::VersionId)
-                            .to(PromptSettings::Table, PromptSettings::Id),
+                            .name("fk-comparing_prompt_vision_setting-details-comparing_prompt_setting_versions-id")
+                            .from(
+                                ComparingPromptVisionSettingDetails::Table,
+                                ComparingPromptVisionSettingDetails::VersionId,
+                            )
+                            .to(
+                                ComparingPromptSettingVersions::Table,
+                                ComparingPromptSettingVersions::Id,
+                            ),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // プロンプト比較実行テーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(ComparingPromptRuns::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ComparingPromptRuns::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(AssistantSettings::SystemPrompt)
+                        ColumnDef::new(ComparingPromptRuns::ManagerId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-comparing_prompt_runs-comparing_prompt_manager-id")
+                            .from(ComparingPromptRuns::Table, ComparingPromptRuns::ManagerId)
+                            .to(ComparingPromptManager::Table, ComparingPromptManager::Id),
+                    )
+                    .col(ColumnDef::new(PromptManager::ProviderType).string())
+                    .col(
+                        ColumnDef::new(ComparingPromptRuns::Model)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptRuns::UserPrompt)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptRuns::Temperature)
+                            .float()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(ComparingPromptRuns::MaxToken).integer())
+                    .to_owned(),
+            )
+            .await?;
+
+        // プロンプト比較実行履歴テーブル
+        manager
+            .create_table(
+                Table::create()
+                    .table(ComparingPromptRunHistories::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ComparingPromptRunHistories::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptRunHistories::RunId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-comparing_prompt_run_histories-comparing_prompt_runs-id")
+                            .from(
+                                ComparingPromptRunHistories::Table,
+                                ComparingPromptRunHistories::RunId,
+                            )
+                            .to(ComparingPromptRuns::Table, ComparingPromptRuns::Id),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptRunHistories::VersionId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-comparing_prompt_run_histories-comparing_prompt_setting_versions-id")
+                            .from(
+                                ComparingPromptRunHistories::Table,
+                                ComparingPromptRunHistories::VersionId,
+                            )
+                            .to(
+                                ComparingPromptSettingVersions::Table,
+                                ComparingPromptSettingVersions::Id,
+                            ),
+                    )
+                    .col(
+                        ColumnDef::new(ComparingPromptRunHistories::Response)
                             .text()
                             .not_null(),
                     )
@@ -289,7 +380,7 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(AssistantSettings::Table)
+                    .table(ComparingPromptRunHistories::Table)
                     .if_exists()
                     .to_owned(),
             )
@@ -298,7 +389,7 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(ChatSettings::Table)
+                    .table(ComparingPromptRuns::Table)
                     .if_exists()
                     .to_owned(),
             )
@@ -307,23 +398,59 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .table(RunHistories::Table)
+                    .table(ComparingPromptVisionSettingDetails::Table)
                     .if_exists()
                     .to_owned(),
             )
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Runs::Table).if_exists().to_owned())
             .await?;
 
         manager
             .drop_table(
                 Table::drop()
-                    .table(PromptSettings::Table)
+                    .table(ComparingPromptChatSettingDetails::Table)
                     .if_exists()
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(ComparingPromptSettingVersions::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(ComparingPromptSettings::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(ComparingPromptManager::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(PromptManagerTag::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Tag::Table).if_exists().to_owned())
             .await?;
 
         manager
@@ -342,7 +469,9 @@ enum PromptManager {
     Table,
     Id,
     Title,
+    ActionType,
     ApiType,
+    ProviderType,
     DeletedAt,
 }
 
@@ -362,53 +491,67 @@ enum PromptManagerTag {
 }
 
 #[derive(DeriveIden)]
-enum PromptSettings {
+enum ComparingPromptManager {
     Table,
     Id,
     ManagerId,
+}
+
+#[derive(DeriveIden)]
+enum ComparingModelManager {
+    Table,
+    Id,
+    ManagerId,
+}
+
+#[derive(DeriveIden)]
+enum ComparingPromptSettings {
+    Table,
+    Id,
+    ComparingManagerId,
     CurrentVersion, // 現在のバージョン、PromptSettingVersionsのバージョンと同じ値を設定する
 }
 
 #[derive(DeriveIden)]
-enum PromptSettingVersions {
+enum ComparingPromptSettingVersions {
     Table,
     Id,
     Version,
     SettingId,
+    SystemPrompt,
 }
 
 #[derive(DeriveIden)]
-enum Runs {
+enum ComparingPromptChatSettingDetails {
+    Table,
+    Id,
+    VersionId,
+    ResponseFormat,
+}
+
+#[derive(DeriveIden)]
+enum ComparingPromptVisionSettingDetails {
+    Table,
+    Id,
+    VersionId,
+}
+
+#[derive(DeriveIden)]
+enum ComparingPromptRuns {
     Table,
     Id,
     ManagerId,
     UserPrompt,
     Model,
     Temperature,
+    MaxToken,
 }
 
 #[derive(DeriveIden)]
-enum RunHistories {
+enum ComparingPromptRunHistories {
     Table,
     Id,
     RunId,
     VersionId,
     Response,
-}
-
-#[derive(DeriveIden)]
-enum ChatSettings {
-    Table,
-    Id,
-    VersionId,
-    SystemPrompt,
-    ResponseFormat,
-}
-
-#[derive(DeriveIden)]
-enum AssistantSettings {
-    Table,
-    Id,
-    VersionId,
-    SystemPrompt,
 }
