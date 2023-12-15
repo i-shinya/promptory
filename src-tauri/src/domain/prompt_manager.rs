@@ -21,6 +21,7 @@ pub struct PromptManagerModel {
     pub id: i32,
     pub title: String,
     pub action_type: Option<ActionType>,
+    pub api_type: Option<APIType>,
     pub tags: Vec<String>,
 }
 

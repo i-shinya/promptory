@@ -51,7 +51,7 @@ const SideMenu = () => {
       setIsVisibleNewManagerForm(false)
       setPromptManagers([
         ...promptManagers,
-        { id, title, actionType: null, tags: [] },
+        { id, title, actionType: null, apiType: null, tags: [] },
       ])
     } catch (error) {
       // TODO react notificationを追加してエラー時にトーストを表示するようにする

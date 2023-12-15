@@ -34,6 +34,7 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
                     id: s.0.id,
                     title: s.0.title,
                     action_type: s.0.action_type.map(|a| a.parse().unwrap()),
+                    api_type: s.0.api_type.map(|a| a.parse().unwrap()),
                     tags: s.1.into_iter().map(|t| t.value).collect(),
                 })
                 .collect()
@@ -159,6 +160,7 @@ mod tests {
         assert_eq!(managers.len(), 1);
         assert_eq!(managers[0].title, "test_title");
         assert_eq!(managers[0].action_type, Some(ActionType::ComparingPrompt));
+        assert_eq!(managers[0].api_type, None);
         assert_eq!(managers[0].tags[0], "test_tag");
     }
 

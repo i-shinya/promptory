@@ -10,7 +10,6 @@ use crate::domain::prompt_manager::{APIType, ActionType, PromptManagerRepository
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
 pub struct CreatePromptManagerRequest {
     pub title: String,
-    pub api_type: Option<APIType>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -48,6 +47,7 @@ pub struct PromptManagerItem {
     pub id: i32,
     pub title: String,
     pub action_type: Option<ActionType>,
+    pub api_type: Option<APIType>,
     pub tags: Vec<String>,
 }
 
@@ -110,7 +110,8 @@ where
                         id: m.id,
                         title: m.title,
                         action_type: m.action_type,
-                        tags: Vec::new(), // TODO 別PRにてDBからタグを取得するように修正する
+                        api_type: m.api_type,
+                        tags: m.tags,
                     })
                     .collect();
                 Ok(GetPromptManagerResponse { managers })
@@ -301,7 +302,6 @@ mod tests {
         };
         let request = CreatePromptManagerRequest {
             title: "Test title".to_string(),
-            api_type: Option::from(APIType::Chat),
         };
         let result = prompt_manager_usecase.create_prompt_manager(request).await;
         assert!(result.is_ok());
@@ -316,7 +316,6 @@ mod tests {
         };
         let request = CreatePromptManagerRequest {
             title: "Test title".to_string(),
-            api_type: Option::from(APIType::Chat),
         };
         let result = prompt_manager_usecase.create_prompt_manager(request).await;
         assert!(result.is_err());
