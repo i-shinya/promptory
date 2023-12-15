@@ -89,7 +89,7 @@ mod tests {
 
     use crate::common::errors::ApplicationError;
     use crate::domain::chat::ChatSettings;
-    use crate::domain::prompt_manager::PromptManagerModel;
+    use crate::domain::prompt_manager::{APIType, ActionType, PromptManagerModel};
 
     use super::*;
 
@@ -113,6 +113,16 @@ mod tests {
 
         async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
             Ok(1)
+        }
+
+        async fn update_prompt_manager(
+            &self,
+            _id: i32,
+            _title: &str,
+            _action_type: Option<ActionType>,
+            _api_type: Option<APIType>,
+        ) -> Result<(), ApplicationError> {
+            Ok(())
         }
 
         async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<(), ApplicationError> {
@@ -183,6 +193,18 @@ mod tests {
             }
 
             async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
+                Err(ApplicationError::DBError(DbErr::Type(
+                    "db error".to_string(),
+                )))
+            }
+
+            async fn update_prompt_manager(
+                &self,
+                _id: i32,
+                _title: &str,
+                _action_type: Option<ActionType>,
+                _api_type: Option<APIType>,
+            ) -> Result<(), ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),
                 )))
