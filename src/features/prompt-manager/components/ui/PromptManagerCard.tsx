@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import Card from '../../../../components/ui/Card'
 import IconButton from '../../../../components/ui/IconButton'
 import { PromptManager } from '../../types'
@@ -23,7 +24,7 @@ const PromptManagerCard = ({
         }}
       >
         <div className="flex flex-row justify-between">
-          <span className="px-2 text-sm border-l-4 border-solid border-white">
+          <span className="px-2 text-sm border-l-4 border-solid dark:border-white">
             {item.actionType}
           </span>
           <IconButton
@@ -38,12 +39,7 @@ const PromptManagerCard = ({
         </div>
         <div className="flex gap-px">
           {item.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 text-xs border border-solid rounded-2xl border-gray-400"
-            >
-              {tag}
-            </span>
+            <Badge className="dark:bg-gray-600 dark:text-white">{tag}</Badge>
           ))}
         </div>
       </div>
