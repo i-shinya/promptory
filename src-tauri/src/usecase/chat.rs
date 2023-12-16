@@ -53,7 +53,7 @@ where
         //     return Err(err);
         // }
         match res {
-            Ok(_) => Ok(res.unwrap()),
+            Ok(response) => Ok(response),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
                 Err(err)
