@@ -33,12 +33,24 @@ fn get_controller() -> &'static Box<Controller<dyn PromptManager>> {
 
 /// プロンプトマネージャーを取得する
 #[tauri::command]
-pub async fn get_prompt_managers(
+pub async fn get_prompt_manager(
     request: usecase::prompt_manager::GetPromptManagerRequest,
+) -> Result<String, String> {
+    let res = log_ipc!(get_controller().prompt_manager, get_prompt_manager, request);
+    match res {
+        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+/// プロンプトマネージャーを取得する
+#[tauri::command]
+pub async fn get_all_prompt_managers(
+    request: usecase::prompt_manager::GetAllPromptManagersRequest,
 ) -> Result<String, String> {
     let res = log_ipc!(
         get_controller().prompt_manager,
-        get_prompt_managers,
+        get_all_prompt_managers,
         request
     );
     match res {

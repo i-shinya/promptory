@@ -13,13 +13,13 @@ pub struct CreatePromptManagerRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+#[serde(rename_all = "camelCase")]
 pub struct CreatePromptManagerResponse {
     pub id: i32,
 }
 
 #[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+#[serde(rename_all = "camelCase")]
 pub struct UpdatePromptManagerRequest {
     pub id: i32,
     pub title: String,
@@ -28,16 +28,28 @@ pub struct UpdatePromptManagerRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+#[serde(rename_all = "camelCase")]
 pub struct UpdatePromptManagerResponse {}
 
 #[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
-pub struct GetPromptManagerRequest {}
+#[serde(rename_all = "camelCase")]
+pub struct GetPromptManagerRequest {
+    pub id: i32,
+}
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
+#[serde(rename_all = "camelCase")]
 pub struct GetPromptManagerResponse {
+    pub manager: PromptManagerItem,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GetAllPromptManagersRequest {}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GetAllPromptManagersResponse {
     pub managers: Vec<PromptManagerItem>,
 }
 
@@ -59,10 +71,15 @@ pub struct DeletePromptManagerRequest {
 
 #[async_trait]
 pub trait PromptManager: Send + Sync {
-    async fn get_prompt_managers(
+    async fn get_prompt_manager(
         &self,
         request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError>;
+
+    async fn get_all_prompt_managers(
+        &self,
+        request: GetAllPromptManagersRequest,
+    ) -> Result<GetAllPromptManagersResponse, ApplicationError>;
 
     async fn create_prompt_manager(
         &self,
@@ -93,10 +110,37 @@ impl<T> PromptManager for PromptManagerUsecase<T>
 where
     T: PromptManagerRepository,
 {
-    async fn get_prompt_managers(
+    async fn get_prompt_manager(
         &self,
-        _request: GetPromptManagerRequest,
+        request: GetPromptManagerRequest,
     ) -> Result<GetPromptManagerResponse, ApplicationError> {
+        let prompt_manager = self
+            .prompt_manager_repository
+            .find_prompt_manager_by_id(request.id)
+            .await;
+
+        match prompt_manager {
+            Ok(mana) => {
+                let manager = PromptManagerItem {
+                    id: mana.id,
+                    title: mana.title,
+                    action_type: mana.action_type,
+                    api_type: mana.api_type,
+                    tags: mana.tags,
+                };
+                Ok(GetPromptManagerResponse { manager })
+            }
+            Err(err) => {
+                log::error!("get_prompt_manager error: {}", err);
+                Err(err)
+            }
+        }
+    }
+
+    async fn get_all_prompt_managers(
+        &self,
+        _request: GetAllPromptManagersRequest,
+    ) -> Result<GetAllPromptManagersResponse, ApplicationError> {
         let prompt_managers = self
             .prompt_manager_repository
             .find_all_prompt_managers()
@@ -114,10 +158,10 @@ where
                         tags: m.tags,
                     })
                     .collect();
-                Ok(GetPromptManagerResponse { managers })
+                Ok(GetAllPromptManagersResponse { managers })
             }
             Err(err) => {
-                log::error!("get_prompt_managers error: {}", err);
+                log::error!("get_all_prompt_managers error: {}", err);
                 Err(err)
             }
         }
@@ -136,6 +180,23 @@ where
             Ok(id) => Ok(CreatePromptManagerResponse { id }),
             Err(err) => {
                 log::error!("create_prompt_manager error: {}", err);
+                Err(err)
+            }
+        }
+    }
+
+    async fn logical_delete_prompt_managers(
+        &self,
+        request: DeletePromptManagerRequest,
+    ) -> Result<(), ApplicationError> {
+        let res = self
+            .prompt_manager_repository
+            .logical_delete_prompt_manager(request.id)
+            .await;
+        match res {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                log::error!("logical_delete_prompt_managers error: {}", err);
                 Err(err)
             }
         }
@@ -163,23 +224,6 @@ where
             }
         }
     }
-
-    async fn logical_delete_prompt_managers(
-        &self,
-        request: DeletePromptManagerRequest,
-    ) -> Result<(), ApplicationError> {
-        let res = self
-            .prompt_manager_repository
-            .logical_delete_prompt_manager(request.id)
-            .await;
-        match res {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                log::error!("logical_delete_prompt_managers error: {}", err);
-                Err(err)
-            }
-        }
-    }
 }
 
 impl<T> PromptManagerUsecase<T>
@@ -203,13 +247,27 @@ mod tests {
     use crate::common::errors::ApplicationError;
     use crate::domain::prompt_manager::{ActionType, PromptManagerModel, PromptManagerRepository};
     use crate::usecase::prompt_manager::{
-        APIType, CreatePromptManagerRequest, DeletePromptManagerRequest, GetPromptManagerRequest,
-        PromptManager, PromptManagerUsecase, UpdatePromptManagerRequest,
+        APIType, CreatePromptManagerRequest, DeletePromptManagerRequest,
+        GetAllPromptManagersRequest, GetPromptManagerRequest, PromptManager, PromptManagerUsecase,
+        UpdatePromptManagerRequest,
     };
 
     struct MockPromptManagersRepository {}
     #[async_trait]
     impl PromptManagerRepository for MockPromptManagersRepository {
+        async fn find_prompt_manager_by_id(
+            &self,
+            _id: i32,
+        ) -> Result<PromptManagerModel, ApplicationError> {
+            Ok(PromptManagerModel {
+                id: 1,
+                title: "Test title".to_string(),
+                action_type: None,
+                api_type: None,
+                tags: Vec::new(),
+            })
+        }
+
         async fn find_all_prompt_managers(
             &self,
         ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
@@ -238,6 +296,15 @@ mod tests {
     struct MockPromptManagersRepositoryError {}
     #[async_trait]
     impl PromptManagerRepository for MockPromptManagersRepositoryError {
+        async fn find_prompt_manager_by_id(
+            &self,
+            _id: i32,
+        ) -> Result<PromptManagerModel, ApplicationError> {
+            Err(ApplicationError::DBError(DbErr::Type(
+                "db error".to_string(),
+            )))
+        }
+
         async fn find_all_prompt_managers(
             &self,
         ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
@@ -247,6 +314,12 @@ mod tests {
         }
 
         async fn create_prompt_manager(&self, _title: &str) -> Result<i32, ApplicationError> {
+            Err(ApplicationError::DBError(DbErr::Type(
+                "db error".to_string(),
+            )))
+        }
+
+        async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<(), ApplicationError> {
             Err(ApplicationError::DBError(DbErr::Type(
                 "db error".to_string(),
             )))
@@ -263,34 +336,55 @@ mod tests {
                 "db error".to_string(),
             )))
         }
-
-        async fn logical_delete_prompt_manager(&self, _id: i32) -> Result<(), ApplicationError> {
-            Err(ApplicationError::DBError(DbErr::Type(
-                "db error".to_string(),
-            )))
-        }
     }
 
     #[tokio::test]
-    async fn test_get_prompt_managers() {
+    async fn test_get_prompt_manager() {
         let mock_repository = MockPromptManagersRepository {};
         let prompt_manager_usecase = PromptManagerUsecase {
             prompt_manager_repository: Arc::new(mock_repository),
         };
-        let request = GetPromptManagerRequest {};
-        let result = prompt_manager_usecase.get_prompt_managers(request).await;
+        let request = GetPromptManagerRequest { id: 1 };
+        let result = prompt_manager_usecase.get_prompt_manager(request).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().manager.id, 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_prompt_manager_error() {
+        let mock_repository = MockPromptManagersRepositoryError {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = GetPromptManagerRequest { id: 1 };
+        let result = prompt_manager_usecase.get_prompt_manager(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_all_prompt_managers() {
+        let mock_repository = MockPromptManagersRepository {};
+        let prompt_manager_usecase = PromptManagerUsecase {
+            prompt_manager_repository: Arc::new(mock_repository),
+        };
+        let request = GetAllPromptManagersRequest {};
+        let result = prompt_manager_usecase
+            .get_all_prompt_managers(request)
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().managers.len(), 0);
     }
 
     #[tokio::test]
-    async fn test_get_prompt_managers_error() {
+    async fn test_get_all_prompt_managers_error() {
         let mock_repository = MockPromptManagersRepositoryError {};
         let prompt_manager_usecase = PromptManagerUsecase {
             prompt_manager_repository: Arc::new(mock_repository),
         };
-        let request = GetPromptManagerRequest {};
-        let result = prompt_manager_usecase.get_prompt_managers(request).await;
+        let request = GetAllPromptManagersRequest {};
+        let result = prompt_manager_usecase
+            .get_all_prompt_managers(request)
+            .await;
         assert!(result.is_err());
     }
 

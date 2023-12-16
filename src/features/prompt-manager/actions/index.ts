@@ -11,7 +11,7 @@ export const getPromptManagersAction = async (): Promise<
   GetPromptManagersResponse
 > => {
   const request: GetPromptManagersRequest = {}
-  const response = (await invoke('get_prompt_managers', {
+  const response = (await invoke('get_all_prompt_managers', {
     request,
   })) as string
   return JSON.parse(response) as GetPromptManagersResponse
