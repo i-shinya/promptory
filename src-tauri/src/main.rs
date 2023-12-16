@@ -54,6 +54,7 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             controller::handler::greet,
             controller::prompt_manager::create_prompt_manager,
+            controller::prompt_manager::update_prompt_manager,
             controller::prompt_manager::get_prompt_managers,
             controller::prompt_manager::logical_delete_prompt_manager,
             controller::chat::post_chat,
