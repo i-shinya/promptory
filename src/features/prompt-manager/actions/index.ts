@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri'
-import { PromptManager } from '../types'
+import { PromptManager } from '@/features/prompt-manager/types'
 
 interface GetPromptManagersRequest {}
 

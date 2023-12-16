@@ -18,13 +18,13 @@ const ButtonWithIcon = ({
   let colorClass = ''
   switch (color) {
     case 'info':
-      colorClass = 'dark:bg-blue-900 dark:text-white'
+      colorClass = 'dark:bg-blue-900'
       break
     case 'warn':
-      colorClass = 'dark:bg-red-900 dark:text-white'
+      colorClass = 'dark:bg-red-900'
       break
     default:
-      colorClass = 'dark:bg-blue-900 dark:text-white'
+      colorClass = 'dark:bg-blue-900'
       break
   }
 

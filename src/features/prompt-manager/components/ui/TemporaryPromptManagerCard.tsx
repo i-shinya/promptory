@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
 import Card from '../../../../components/ui/Card'
 import ButtonWithIcon from '../../../../components/ui/ButtonWithIcon'
+import { TextInput } from '@/components/ui/TextInput'
 
 export interface TemporaryPromptManagerCardProps {
   handleSubmit: (title: string) => void
@@ -26,14 +27,14 @@ const TemporaryPromptManagerCard = ({
         }}
       >
         <div className="flex flex-col gap-px cursor-pointer">
-          <div className="dark:bg-neutral-600 p-1">
-            <input
-              className="text-md dark:bg-neutral-700 outline-none w-full align-middle"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
+          <TextInput
+            className="row"
+            name="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter title..."
+            required
+          ></TextInput>
           <div className="flex justify-end gap-2 mt-2">
             <ButtonWithIcon
               text="Cancel"

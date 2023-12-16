@@ -32,7 +32,8 @@ const SideMenu = () => {
   const selectPromptManager = (id: number) => {
     // TODO 詳細画面を作成したらそちらに遷移するようにする
     console.log(`select ${id}`)
-    navigate('/prompt_manager')
+    const URL_PATH = '/prompt_manager/:id'
+    navigate(URL_PATH.replace(':id', id.toString()))
   }
 
   const goToConfigPage = () => {
@@ -74,7 +75,7 @@ const SideMenu = () => {
   }
 
   return (
-    <div className="w-64 h-screen dark:bg-zinc-950 p-4">
+    <div className="p-4">
       <SideMenuHeader
         onClickAdd={addTemporaryPromptManager}
         onClickConfig={goToConfigPage}

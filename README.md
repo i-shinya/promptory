@@ -6,22 +6,32 @@ This template should help get you started developing with Tauri, React and Types
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
-## DB
+## for DEV
 
-### migration
+### UIコンポーネント追加（shadcn-ui）
+
+追加できるComponentsは以下で確認
+
+[shadcn-ui](https://ui.shadcn.com/docs)
+
+```bash
+npx shadcn-ui@latest add input
+```
+
+### DB
+
+#### migration
 
 APP_EXECUTION_MODEがdevの場合は自動マイグレーションを行わず、手動でのmigrationを行う
 
 ```bash
 cargo run --package promptory --bin migrate
 ```
-
-
-#### add migration file
+- add migration file
 
 頑張って手動で作成する
 
-### generate entity
+- generate entity
 
 ```bash
 sea-orm-cli generate entity \
@@ -29,7 +39,7 @@ sea-orm-cli generate entity \
     -o src-tauri/src/infra/repository/entities
 ```
 
-## run
+### run
 
 ```bash
 npm run tauri dev
@@ -40,7 +50,7 @@ npm run tauri dev
 また、以下 URL でブラウザから確認することも可能
 `http://localhost:1420/`
 
-## デバッグ
+### デバッグ
 
 デバッグではフロントとバックエンドを別々に起動する必要がある（rustのデバッグのため）
 
@@ -50,11 +60,11 @@ npm run vite
 
 フロントエンド実行後にバックエンドを実行する
 
-### デバッグ（フロント）
+#### デバッグ（フロント）
 
 `Cmd + Option + i` を押すと開発者ツールが出てくる
 
-### デバッグ（バックエンド）
+#### デバッグ（バックエンド）
 
 tauri公式を参考に設定
 
