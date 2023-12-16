@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait,
-    QueryFilter,
+    ModelTrait, QueryFilter,
 };
 
 use crate::common::errors::ApplicationError;
@@ -20,6 +20,34 @@ pub struct PromptManagerRepositoryImpl {
 
 #[async_trait]
 impl PromptManagerRepository for PromptManagerRepositoryImpl {
+    async fn find_prompt_manager_by_id(
+        &self,
+        id: i32,
+    ) -> Result<PromptManagerModel, ApplicationError> {
+        let prompt_manager: Option<prompt_manager::Model> = PromptManager::find()
+            .filter(prompt_manager::Column::Id.eq(id))
+            .one(self.db.as_ref())
+            .await?;
+
+        if prompt_manager.is_none() {
+            return Err(ApplicationError::EmptyResult);
+        }
+
+        let prompt_manager = prompt_manager.unwrap();
+        let tags = prompt_manager
+            .find_related(Tag)
+            .all(self.db.as_ref())
+            .await?;
+
+        Ok(PromptManagerModel {
+            id: prompt_manager.id,
+            title: prompt_manager.title,
+            action_type: prompt_manager.action_type.map(|a| a.parse().unwrap()),
+            api_type: prompt_manager.api_type.map(|a| a.parse().unwrap()),
+            tags: tags.into_iter().map(|t| t.value).collect(),
+        })
+    }
+
     async fn find_all_prompt_managers(&self) -> Result<Vec<PromptManagerModel>, ApplicationError> {
         let prompt_managers: Vec<(prompt_manager::Model, Vec<tag::Model>)> = PromptManager::find()
             .filter(prompt_manager::Column::DeletedAt.is_null())
@@ -116,8 +144,66 @@ mod tests {
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
 
     #[tokio::test]
+    async fn test_find_prompt_manager_by_id() {
+        let db = setup_db("test_find_prompt_manager_by_id").await;
+        let repo = PromptManagerRepositoryImpl::new(db.clone());
+
+        let prompt_manager = prompt_manager::ActiveModel {
+            id: Default::default(),
+            title: ActiveValue::Set("test_title".to_string()),
+            action_type: ActiveValue::Set(Option::from(ActionType::ComparingPrompt.to_string())),
+            api_type: ActiveValue::Set(None),
+            deleted_at: ActiveValue::Set(None),
+        };
+        let inserted_prompt_manager = PromptManager::insert(prompt_manager)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert prompt manager");
+        let prompt_manager_id = inserted_prompt_manager.last_insert_id;
+
+        let tag = tag::ActiveModel {
+            id: Default::default(),
+            value: ActiveValue::Set("test_tag".to_string()),
+        };
+        let inserted_tag = Tag::insert(tag)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert tag");
+        let tag_id = inserted_tag.last_insert_id;
+        let prompt_manager_tag = prompt_manager_tag::ActiveModel {
+            id: Default::default(),
+            prompt_manager_id: ActiveValue::Set(prompt_manager_id),
+            tag_id: ActiveValue::Set(tag_id),
+        };
+        PromptManagerTag::insert(prompt_manager_tag)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert into prompt_manager_tag");
+
+        let result = repo.find_prompt_manager_by_id(prompt_manager_id).await;
+        assert!(result.is_ok());
+        let manager = result.unwrap();
+
+        // assert
+        assert_eq!(manager.title, "test_title");
+        assert_eq!(manager.action_type, Some(ActionType::ComparingPrompt));
+        assert_eq!(manager.api_type, None);
+        assert_eq!(manager.tags[0], "test_tag");
+    }
+
+    #[tokio::test]
+    async fn test_find_prompt_manager_by_id_not_found_error() {
+        let db = setup_db("test_find_prompt_manager_by_id_not_found_error").await;
+        let repo = PromptManagerRepositoryImpl::new(db.clone());
+
+        // 存在しないIDでfindメソッドを呼び出し
+        let result = repo.find_prompt_manager_by_id(9999).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
     async fn test_find_all_prompt_managers() {
-        let db = setup_db("test_find_settings").await;
+        let db = setup_db("test_find_all_prompt_managers").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         let prompt_manager = prompt_manager::ActiveModel {
@@ -185,8 +271,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_update_prompt_managers() {
-        let db = setup_db("test_update_prompt_managers").await;
+    async fn test_update_prompt_manager() {
+        let db = setup_db("test_update_prompt_manager").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         let prompt_manager = prompt_manager::ActiveModel {
@@ -225,6 +311,22 @@ mod tests {
             Some(ActionType::ComparingModel.to_string())
         );
     }
+    #[tokio::test]
+    async fn test_update_prompt_manager_not_found_error() {
+        let db = setup_db("test_update_prompt_manager_not_found_error").await;
+        let repo = PromptManagerRepositoryImpl::new(db.clone());
+
+        // 存在しないIDでupdateメソッドを呼び出し
+        let result = repo
+            .update_prompt_manager(
+                9999,
+                "test_title2",
+                Some(ActionType::ComparingModel),
+                Some(APIType::Chat),
+            )
+            .await;
+        assert!(result.is_err());
+    }
 
     #[tokio::test]
     async fn test_logical_delete_prompt_managers() {
@@ -257,8 +359,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_logical_delete_prompt_managers_error() {
-        let db = setup_db("test_logical_delete_prompt_managers_error").await;
+    async fn test_logical_delete_prompt_managers_not_found_error() {
+        let db = setup_db("test_logical_delete_prompt_managers_not_found_error").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
         // 存在しないIDでlogical_deleteメソッドを呼び出し

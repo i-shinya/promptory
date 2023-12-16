@@ -48,19 +48,12 @@ where
             response_format: request.response_format.clone(),
         };
         let res = self.ai_chat.do_chat(&settings).await;
-        if let Err(err) = res {
-            log::error!("post_chat error: {}", err);
-            return Err(err);
-        }
-        let answer = res.unwrap();
-
-        // DBに永続化
-        let res = self
-            .prompt_manager_repository
-            .create_prompt_manager("title")
-            .await;
+        // if let Err(err) = res {
+        //     log::error!("post_chat error: {}", err);
+        //     return Err(err);
+        // }
         match res {
-            Ok(_) => Ok(answer),
+            Ok(_) => Ok(res.unwrap()),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
                 Err(err)
@@ -105,6 +98,19 @@ mod tests {
 
     #[async_trait]
     impl PromptManagerRepository for MockSettingsRepository {
+        async fn find_prompt_manager_by_id(
+            &self,
+            _id: i32,
+        ) -> Result<PromptManagerModel, ApplicationError> {
+            Ok(PromptManagerModel {
+                id: 1,
+                title: "Test title".to_string(),
+                action_type: None,
+                api_type: None,
+                tags: Vec::new(),
+            })
+        }
+
         async fn find_all_prompt_managers(
             &self,
         ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
@@ -184,6 +190,15 @@ mod tests {
         struct MockSettingsRepositoryError {}
         #[async_trait]
         impl PromptManagerRepository for MockSettingsRepositoryError {
+            async fn find_prompt_manager_by_id(
+                &self,
+                _id: i32,
+            ) -> Result<PromptManagerModel, ApplicationError> {
+                Err(ApplicationError::DBError(DbErr::Type(
+                    "db error".to_string(),
+                )))
+            }
+
             async fn find_all_prompt_managers(
                 &self,
             ) -> Result<Vec<PromptManagerModel>, ApplicationError> {
