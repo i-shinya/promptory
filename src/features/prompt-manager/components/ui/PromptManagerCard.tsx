@@ -39,7 +39,9 @@ const PromptManagerCard = ({
         </div>
         <div className="flex gap-px">
           {item.tags.map((tag) => (
-            <Badge className="dark:bg-gray-600 dark:text-white">{tag}</Badge>
+            <Badge key={tag} className="dark:bg-gray-600 dark:text-white">
+              {tag}
+            </Badge>
           ))}
         </div>
       </div>
