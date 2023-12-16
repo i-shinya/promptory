@@ -32,9 +32,8 @@ const NewPromptManagerInputForm = ({
     },
   })
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) =>
     await handleSubmit(data.title)
-  }
 
   return (
     <Card>
