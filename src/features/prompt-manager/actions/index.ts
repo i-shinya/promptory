@@ -60,15 +60,12 @@ interface UpdatePromptManagerRequest {
   title: string
   actionType?: ActionType
   apiType?: ApiType
+  tags: string[]
 }
 
 export const updatePromptManagerAction = async (
-  id: number,
-  title: string,
-  actionType?: ActionType,
-  apiType?: ApiType,
+  request: UpdatePromptManagerRequest,
 ): Promise<void> => {
-  const request: UpdatePromptManagerRequest = { id, title, actionType, apiType }
   await invoke('update_prompt_manager', {
     request,
   })

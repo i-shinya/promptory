@@ -59,12 +59,14 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
 
   const updatePromptManager = async (data: z.infer<typeof formSchema>) => {
     try {
-      await updatePromptManagerAction(
-        Number(id),
-        data.title,
-        data.actionType,
-        data.apiType,
-      )
+      const tags: string[] = [] // TODO 画面で入力できるように修正
+      await updatePromptManagerAction({
+        id: Number(id),
+        title: data.title,
+        actionType: data.actionType,
+        apiType: data.apiType,
+        tags,
+      })
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
