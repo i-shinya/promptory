@@ -5,7 +5,7 @@ import NewPromptManagerInputForm from './ui/NewPromptManagerInputForm'
 import PromptManagerCard from './ui/PromptManagerCard'
 import {
   createPromptManagerAction,
-  getPromptManagersAction,
+  getAllPromptManagersAction,
   logicalDeletePromptManagerAction,
 } from '../actions'
 import { useNavigate } from 'react-router-dom'
@@ -27,7 +27,7 @@ const PromptManagerList = ({
   useEffect(() => {
     const fetchPromptManagers = async () => {
       try {
-        const res = await getPromptManagersAction()
+        const res = await getAllPromptManagersAction()
         console.log(res)
         setPromptManagers(res.managers)
       } catch (error) {
@@ -38,8 +38,6 @@ const PromptManagerList = ({
   }, [])
 
   const selectPromptManager = (id: number) => {
-    // TODO 詳細画面を作成したらそちらに遷移するようにする
-    console.log(`select ${id}`)
     const URL_PATH = '/prompt_manager/:id'
     navigate(URL_PATH.replace(':id', id.toString()))
   }

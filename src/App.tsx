@@ -5,6 +5,7 @@ import PromptManager from './pages/PromptManager'
 import DefaultLayout from './layouts/default'
 import { RecoilRoot } from 'recoil'
 import { ThemeProvider } from './layouts/theme-provider'
+import Home from './pages/Home'
 
 const App = () => {
   return (
@@ -12,7 +13,7 @@ const App = () => {
       <RecoilRoot>
         <DefaultLayout>
           <Routes>
-            <Route path="/" element={<PromptManager />} />
+            <Route path="/" element={<Home />} />
             <Route path="/prompt_manager/:id" element={<PromptManager />} />
             <Route path="/config" element={<Config />} />
           </Routes>

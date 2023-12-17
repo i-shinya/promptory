@@ -1,6 +1,8 @@
 import { FormEvent } from 'react'
+import { cn } from '@/lib/utils'
 
 export interface ButtonWithIconProps {
+  className?: string
   text: string
   type: 'submit' | 'button' | 'reset'
   icon: string
@@ -9,28 +11,29 @@ export interface ButtonWithIconProps {
 }
 
 const ButtonWithIcon = ({
+  className,
   text,
   type,
   icon,
   color,
   onClick,
 }: ButtonWithIconProps) => {
-  let colorClass = ''
+  let colorName = ''
   switch (color) {
     case 'info':
-      colorClass = 'dark:bg-blue-900'
+      colorName = 'dark:bg-blue-900'
       break
     case 'warn':
-      colorClass = 'dark:bg-red-900'
+      colorName = 'dark:bg-red-900'
       break
     default:
-      colorClass = 'dark:bg-blue-900'
+      colorName = 'dark:bg-blue-900'
       break
   }
 
   return (
     <button
-      className={`px-2 rounded-full ${colorClass}`}
+      className={cn('px-2 rounded-full', colorName, className)}
       type={type}
       onClick={
         onClick

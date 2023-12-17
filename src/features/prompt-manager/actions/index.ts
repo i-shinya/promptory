@@ -1,5 +1,25 @@
 import { invoke } from '@tauri-apps/api/tauri'
-import { PromptManager } from '@/features/prompt-manager/types'
+import {
+  ActionType,
+  ApiType,
+  PromptManager,
+} from '@/features/prompt-manager/types'
+
+interface GetPromptManagerRequest {
+  id: number
+}
+
+type GetPromptManagerResponse = PromptManager
+
+export const getPromptManagerAction = async (
+  id: number,
+): Promise<GetPromptManagerResponse> => {
+  const request: GetPromptManagerRequest = { id }
+  const response = (await invoke('get_prompt_manager', {
+    request,
+  })) as string
+  return JSON.parse(response) as GetPromptManagerResponse
+}
 
 interface GetPromptManagersRequest {}
 
@@ -7,7 +27,7 @@ interface GetPromptManagersResponse {
   managers: PromptManager[]
 }
 
-export const getPromptManagersAction = async (): Promise<
+export const getAllPromptManagersAction = async (): Promise<
   GetPromptManagersResponse
 > => {
   const request: GetPromptManagersRequest = {}
@@ -33,6 +53,22 @@ export const createPromptManagerAction = async (
     request,
   })) as string
   return JSON.parse(response) as CreatePromptManagerResponse
+}
+
+interface UpdatePromptManagerRequest {
+  id: number
+  title: string
+  actionType?: ActionType
+  apiType?: ApiType
+  tags: string[]
+}
+
+export const updatePromptManagerAction = async (
+  request: UpdatePromptManagerRequest,
+): Promise<void> => {
+  await invoke('update_prompt_manager', {
+    request,
+  })
 }
 
 interface LogicalPromptManagerRequest {

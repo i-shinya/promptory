@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/tauri'
+import { PromptManager as PromptManagerType } from '@/features/prompt-manager/types'
+import { useParams } from 'react-router-dom'
+import { Separator } from '@/components/ui/separator'
+import PromptManagerEditForm from '@/features/prompt-manager/components/PromptManagerEditForm'
 
 interface ChatRequest {
   userPrompt: string
@@ -10,7 +14,16 @@ interface ChatRequest {
 }
 
 const PromptManager = () => {
+  const { id } = useParams()
+
   const [answer, setAnswer] = useState('')
+  const [promptManagers, setPromptManagers] = useState<PromptManagerType>({
+    id: 1,
+    title: 'test',
+    actionType: null,
+    apiType: null,
+    tags: [],
+  })
   const [request, setRequest] = useState<ChatRequest>({
     userPrompt: 'enter user prompt...',
     systemPrompt: 'enter system prompt...',
@@ -28,60 +41,10 @@ const PromptManager = () => {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRequest({
-      ...request,
-      [e.target.name]:
-        e.target.name === 'temperature'
-          ? Number(e.target.value)
-          : e.target.value,
-    })
-  }
-
   return (
-    <div className="container">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          postChat()
-        }}
-      >
-        <input
-          className="row"
-          name="userPrompt"
-          value={request.userPrompt}
-          onChange={handleChange}
-          placeholder="Enter user prompt..."
-        />
-        <input
-          className="row"
-          name="systemPrompt"
-          value={request.systemPrompt}
-          onChange={handleChange}
-          placeholder="Enter system prompt..."
-        />
-        <input
-          className="row"
-          name="model"
-          value={request.model}
-          onChange={handleChange}
-          placeholder="Enter model..."
-        />
-        <input
-          className="row"
-          name="temperature"
-          type="number"
-          value={request.temperature}
-          onChange={handleChange}
-          placeholder="Enter temperature..."
-          min="0"
-          max="1"
-          step="0.1"
-        />
-        <button type="submit">Submit</button>
-      </form>
-
-      <p>{answer}</p>
+    <div>
+      <PromptManagerEditForm id={id!!} />
+      <Separator className="my-4" />
     </div>
   )
 }
