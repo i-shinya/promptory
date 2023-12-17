@@ -14,6 +14,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
     if (event.keyCode === 13) {
       event.preventDefault()
       const value = event.currentTarget.value.trim()
+      if (!value) return
       addTag(value)
       event.currentTarget.value = ''
     }
