@@ -127,6 +127,7 @@ mod tests {
             _title: &str,
             _action_type: Option<ActionType>,
             _api_type: Option<APIType>,
+            _tags: Vec<String>,
         ) -> Result<(), ApplicationError> {
             Ok(())
         }
@@ -219,6 +220,7 @@ mod tests {
                 _title: &str,
                 _action_type: Option<ActionType>,
                 _api_type: Option<APIType>,
+                _tags: Vec<String>,
             ) -> Result<(), ApplicationError> {
                 Err(ApplicationError::DBError(DbErr::Type(
                     "db error".to_string(),

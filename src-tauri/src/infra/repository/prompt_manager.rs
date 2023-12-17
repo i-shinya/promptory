@@ -3,15 +3,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait,
-    ModelTrait, QueryFilter,
+    ModelTrait, QueryFilter, TransactionTrait,
 };
 
 use crate::common::errors::ApplicationError;
 use crate::domain::prompt_manager::{
     APIType, ActionType, PromptManagerModel, PromptManagerRepository,
 };
-use crate::infra::repository::entities::prelude::{PromptManager, Tag};
-use crate::infra::repository::entities::{prompt_manager, tag};
+use crate::infra::repository::entities::prelude::{PromptManager, PromptManagerTag, Tag};
+use crate::infra::repository::entities::{prompt_manager, prompt_manager_tag, tag};
 
 #[derive(Clone, Debug)]
 pub struct PromptManagerRepositoryImpl {
@@ -90,9 +90,17 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         title: &str,
         action_type: Option<ActionType>,
         api_type: Option<APIType>,
+        tags: Vec<String>,
     ) -> Result<(), ApplicationError> {
+        let txn = self
+            .db
+            .as_ref()
+            .begin()
+            .await
+            .map_err(ApplicationError::DBError)?;
+
         let prompt_manager = PromptManager::find_by_id(id)
-            .one(self.db.as_ref())
+            .one(&txn)
             .await
             .map_err(ApplicationError::DBError)?;
         if prompt_manager.is_none() {
@@ -103,9 +111,55 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         prompt_manager.action_type = ActiveValue::Set(action_type.map(|a| a.to_string()));
         prompt_manager.api_type = ActiveValue::Set(api_type.map(|a| a.to_string()));
         let _ = prompt_manager
-            .update(self.db.as_ref())
+            .update(&txn)
             .await
             .map_err(ApplicationError::DBError)?;
+
+        // prompt_manager_tagを更新する
+        // 既存のtagに一致するものがあれば取得、なければtagを作成する
+        let mut tag_ids: Vec<i32> = Vec::new();
+        for tag_str in tags {
+            let tag = Tag::find()
+                .filter(tag::Column::Value.eq(tag_str.clone()))
+                .one(&txn)
+                .await
+                .map_err(ApplicationError::DBError)?;
+            if tag.is_none() {
+                let tag = tag::ActiveModel {
+                    id: Default::default(),
+                    value: ActiveValue::Set(tag_str),
+                };
+                let res = Tag::insert(tag)
+                    .exec(&txn)
+                    .await
+                    .map_err(ApplicationError::DBError)?;
+                tag_ids.push(res.last_insert_id);
+            } else {
+                tag_ids.push(tag.unwrap().id);
+            }
+        }
+
+        // 既存のprompt_manager_tagを削除
+        let _ = prompt_manager_tag::Entity::delete_many()
+            .filter(prompt_manager_tag::Column::PromptManagerId.eq(id))
+            .exec(&txn)
+            .await
+            .map_err(ApplicationError::DBError)?;
+
+        // prompt_manager_tagを作成
+        for tag_id in tag_ids {
+            let prompt_manager_tag = prompt_manager_tag::ActiveModel {
+                id: Default::default(),
+                prompt_manager_id: ActiveValue::Set(id),
+                tag_id: ActiveValue::Set(tag_id),
+            };
+            let _ = PromptManagerTag::insert(prompt_manager_tag)
+                .exec(&txn)
+                .await
+                .map_err(ApplicationError::DBError)?;
+        }
+
+        txn.commit().await.map_err(ApplicationError::DBError)?;
         Ok(())
     }
 
@@ -295,11 +349,12 @@ mod tests {
                 "test_title2",
                 Some(ActionType::ComparingModel),
                 Some(APIType::Chat),
+                vec!["test_tag".to_string()],
             )
             .await;
         assert!(result.is_ok());
 
-        // assert
+        // prompt_managerのassert
         let prompt_managers = PromptManager::find_by_id(prompt_manager_id)
             .one(db.as_ref())
             .await
@@ -310,7 +365,24 @@ mod tests {
             settings.action_type,
             Some(ActionType::ComparingModel.to_string())
         );
+
+        // prompt_manager_tagsとtagsテーブルのassertを追加
+        let prompt_manager_tags = PromptManagerTag::find()
+            .all(db.as_ref())
+            .await
+            .expect("Failed to fetch prompt_manager_tags");
+        assert_eq!(prompt_manager_tags.len(), 1);
+        assert_eq!(prompt_manager_tags[0].prompt_manager_id, prompt_manager_id);
+        assert_eq!(prompt_manager_tags[0].tag_id, 1);
+
+        let tags = Tag::find_by_id(1)
+            .one(db.as_ref())
+            .await
+            .expect("Failed to fetch tag");
+        assert!(tags.is_some());
+        assert_eq!(tags.unwrap().value, "test_tag");
     }
+
     #[tokio::test]
     async fn test_update_prompt_manager_not_found_error() {
         let db = setup_db("test_update_prompt_manager_not_found_error").await;
@@ -323,6 +395,7 @@ mod tests {
                 "test_title2",
                 Some(ActionType::ComparingModel),
                 Some(APIType::Chat),
+                vec!["test_tag".to_string()],
             )
             .await;
         assert!(result.is_err());

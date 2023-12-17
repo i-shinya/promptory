@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { TextInput } from '@/components/ui/TextInput'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import ButtonWithIcon from '@/components/ui/ButtonWithIcon'
 import { z } from 'zod'
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/form'
 import { getPromptManagerAction, updatePromptManagerAction } from '../actions'
 import { toast } from 'react-toastify'
+import TagInput from './ui/TagInput'
 
 const formSchema = z.object({
   title: z.string().min(1).max(100),
@@ -31,6 +31,8 @@ interface PromptManagerEditFormProps {
 const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
   id,
 }) => {
+  const [tags, setTags] = useState<string[]>([])
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,6 +52,7 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
           actionType: res.actionType ?? undefined,
           apiType: res.apiType ?? undefined,
         })
+        setTags(res.tags)
       } catch (error) {
         toast.error(`Failed to fetch prompt manager: ${error}`)
       }
@@ -59,7 +62,6 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
 
   const updatePromptManager = async (data: z.infer<typeof formSchema>) => {
     try {
-      const tags: string[] = [] // TODO 画面で入力できるように修正
       await updatePromptManagerAction({
         id: Number(id),
         title: data.title,
@@ -80,7 +82,7 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
           className="flex flex-column gap-4"
           onSubmit={form.handleSubmit(updatePromptManager)}
         >
-          <div className="grow">
+          <div className="grow w-7/12">
             <div className="mb-2">
               <FormField
                 control={form.control}
@@ -171,20 +173,11 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
             </div>
           </div>
 
-          <div className="grow">
-            <Label htmlFor="tags">Tags</Label>
-            <TextInput
-              id="tags"
-              placeholder="Enter tags, separated by comma"
-              type="text"
-            />
-            <div className="flex flex-wrap gap-2 mt-2">
-              <Badge className="dark:bg-gray-600 dark:text-white">Tag1</Badge>
-              <Badge className="dark:bg-gray-600 dark:text-white">Tag2</Badge>
-            </div>
+          <div className="grow w-4/12">
+            <TagInput tags={tags} setTags={setTags} />
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center w-1/12">
             <ButtonWithIcon
               text="Save"
               type="submit"

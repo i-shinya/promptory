@@ -9,6 +9,7 @@ const IconButton = ({ icon, onClick }: IconButtonProps) => {
       className={`${icon} cursor-pointer p-0`}
       onClick={(e: any) => {
         e.stopPropagation()
+        e.preventDefault()
         onClick()
       }}
     ></button>

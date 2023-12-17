@@ -25,6 +25,7 @@ pub struct UpdatePromptManagerRequest {
     pub title: String,
     pub action_type: ActionType,
     pub api_type: Option<APIType>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -209,11 +210,12 @@ where
                 request.title.as_str(),
                 Some(request.action_type),
                 request.api_type,
+                request.tags,
             )
             .await;
 
         match res {
-            Ok(id) => Ok(UpdatePromptManagerResponse {}),
+            Ok(_) => Ok(UpdatePromptManagerResponse {}),
             Err(err) => {
                 log::error!("update_prompt_manager error: {}", err);
                 Err(err)
@@ -280,6 +282,7 @@ mod tests {
             title: &str,
             action_type: Option<ActionType>,
             api_type: Option<APIType>,
+            tags: Vec<String>,
         ) -> Result<(), ApplicationError> {
             Ok(())
         }
@@ -327,6 +330,7 @@ mod tests {
             _title: &str,
             _action_type: Option<ActionType>,
             _api_type: Option<APIType>,
+            _tags: Vec<String>,
         ) -> Result<(), ApplicationError> {
             Err(ApplicationError::DBError(DbErr::Type(
                 "db error".to_string(),
@@ -422,6 +426,7 @@ mod tests {
             title: "Test title".to_string(),
             action_type: ActionType::ComparingPrompt,
             api_type: Option::from(APIType::Chat),
+            tags: Vec::new(),
         };
         let result = prompt_manager_usecase.update_prompt_manager(request).await;
         assert!(result.is_ok());
@@ -438,6 +443,7 @@ mod tests {
             title: "Test title".to_string(),
             action_type: ActionType::ComparingPrompt,
             api_type: Option::from(APIType::Chat),
+            tags: Vec::new(),
         };
         let result = prompt_manager_usecase.update_prompt_manager(request).await;
         assert!(result.is_err());

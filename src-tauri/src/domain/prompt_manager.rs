@@ -7,7 +7,7 @@ use crate::common::errors::ApplicationError;
 #[derive(Clone, Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
 pub enum APIType {
     Chat,
-    Assistant,
+    Vision,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
@@ -40,5 +40,6 @@ pub trait PromptManagerRepository: Send + Sync {
         title: &str,
         action_type: Option<ActionType>,
         api_type: Option<APIType>,
+        tags: Vec<String>,
     ) -> Result<(), ApplicationError>;
 }
