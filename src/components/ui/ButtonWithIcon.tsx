@@ -18,18 +18,12 @@ const ButtonWithIcon = ({
   color,
   onClick,
 }: ButtonWithIconProps) => {
-  let colorName = ''
-  switch (color) {
-    case 'info':
-      colorName = 'dark:bg-blue-900'
-      break
-    case 'warn':
-      colorName = 'dark:bg-red-900'
-      break
-    default:
-      colorName = 'dark:bg-blue-900'
-      break
+  const colorClasses = {
+    info: 'dark:bg-blue-900',
+    warn: 'dark:bg-red-900',
+    default: 'dark:bg-blue-900',
   }
+  const colorName = colorClasses[color ? color : 'default']
 
   return (
     <button

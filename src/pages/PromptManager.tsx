@@ -17,13 +17,6 @@ const PromptManager = () => {
   const { id } = useParams()
 
   const [answer, setAnswer] = useState('')
-  const [promptManagers, setPromptManagers] = useState<PromptManagerType>({
-    id: 1,
-    title: 'test',
-    actionType: null,
-    apiType: null,
-    tags: [],
-  })
   const [request, setRequest] = useState<ChatRequest>({
     userPrompt: 'enter user prompt...',
     systemPrompt: 'enter system prompt...',
@@ -43,7 +36,7 @@ const PromptManager = () => {
 
   return (
     <div>
-      <PromptManagerEditForm id={id!!} />
+      {id ? <PromptManagerEditForm id={id} /> : <div>Invalid ID provided.</div>}
       <Separator className="my-4" />
     </div>
   )
