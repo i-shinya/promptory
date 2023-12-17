@@ -1,7 +1,7 @@
 import Card from '../../../../components/ui/Card'
 import ButtonWithIcon from '../../../../components/ui/ButtonWithIcon'
 import { TextInput } from '@/components/ui/TextInput'
-import * as z from 'zod'
+import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {

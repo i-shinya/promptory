@@ -37,11 +37,7 @@ pub struct GetPromptManagerRequest {
     pub id: i32,
 }
 
-#[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GetPromptManagerResponse {
-    pub manager: PromptManagerItem,
-}
+type GetPromptManagerResponse = PromptManagerItem;
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -128,7 +124,7 @@ where
                     api_type: mana.api_type,
                     tags: mana.tags,
                 };
-                Ok(GetPromptManagerResponse { manager })
+                Ok(manager)
             }
             Err(err) => {
                 log::error!("get_prompt_manager error: {}", err);
@@ -347,7 +343,7 @@ mod tests {
         let request = GetPromptManagerRequest { id: 1 };
         let result = prompt_manager_usecase.get_prompt_manager(request).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().manager.id, 1);
+        assert_eq!(result.unwrap().id, 1);
     }
 
     #[tokio::test]
