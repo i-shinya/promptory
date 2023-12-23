@@ -24,11 +24,20 @@ where
     T: AIClient,
 {
     async fn do_chat(&self, settings: &ChatSettings) -> Result<String, ApplicationError> {
-        let req = CreateChatCompletionRequestArgs::default()
-            .model("gpt-4-1106-preview")
-            .messages(self.build_messages(settings.clone()))
-            .build()
-            .unwrap();
+        let mut req = CreateChatCompletionRequestArgs::default();
+
+        req.model(&settings.model)
+            .temperature(settings.temperature)
+            .messages(self.build_messages(settings.clone()));
+
+        if let Some(max_tokens) = &settings.max_tokens {
+            req.max_tokens(*max_tokens);
+        }
+        // if let Some(response_format) = &settings.response_format {
+        //     req.response_format(response_format);
+        // }
+
+        let req = req.build().unwrap();
 
         match self.client.create_chat(req).await {
             Ok(response) => {
@@ -131,6 +140,7 @@ mod tests {
             user_prompt: "User prompt".to_string(),
             model: "gpt-4-1106-preview".to_string(),
             temperature: 0.0,
+            max_tokens: None,
             response_format: None,
         };
         let result = mock_chat.do_chat(&settings).await;
@@ -166,6 +176,7 @@ mod tests {
             user_prompt: "User prompt".to_string(),
             model: "gpt-4-1106-preview".to_string(),
             temperature: 0.0,
+            max_tokens: None,
             response_format: None,
         };
         let result = mock_chat.do_chat(&settings).await;

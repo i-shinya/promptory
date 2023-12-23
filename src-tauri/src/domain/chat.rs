@@ -7,8 +7,9 @@ pub struct ChatSettings {
     pub id: i32,
     pub user_prompt: String,
     pub system_prompt: String,
-    pub temperature: f32,
     pub model: String,
+    pub temperature: f32,
+    pub max_tokens: Option<u16>,
     pub response_format: Option<String>,
 }
 
