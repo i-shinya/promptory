@@ -37,7 +37,9 @@ where
         //     req.response_format(response_format);
         // }
 
-        let req = req.build().unwrap();
+        let req = req
+            .build()
+            .map_err(|e| ApplicationError::UnknownError(e.to_string()))?;
 
         match self.client.create_chat(req).await {
             Ok(response) => {
