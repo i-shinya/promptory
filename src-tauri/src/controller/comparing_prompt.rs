@@ -1,7 +1,7 @@
 use once_cell::sync::OnceCell;
 
-use crate::usecase::chat::Chat;
-use crate::{log_ipc, usecase};
+use crate::usecase::comparing_prompt::Chat;
+use crate::{convert_to_tauri_result, log_ipc, usecase};
 
 pub struct Controller<T>
 where
@@ -31,10 +31,9 @@ fn get_controller() -> &'static Box<Controller<dyn Chat>> {
 
 /// チャットを実行する
 #[tauri::command]
-pub async fn post_chat(request: usecase::chat::ChatRequest) -> Result<String, String> {
+pub async fn run_comparing_prompt(
+    request: usecase::comparing_prompt::RunChatRequest,
+) -> Result<String, String> {
     let res = log_ipc!(get_controller().chat, run_chat, request);
-    match res {
-        Ok(res) => Ok(res),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::common::errors::ApplicationError;
 use crate::domain::chat::{AIChat, ChatSettings};
@@ -9,17 +9,25 @@ use crate::domain::prompt_manager::PromptManagerRepository;
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
-pub struct ChatRequest {
+pub struct RunChatRequest {
+    pub run_id: i32,
     pub user_prompt: String,
     pub system_prompt: String,
     pub model: String,
     pub temperature: f32,
+    pub max_tokens: Option<u16>,
     pub response_format: Option<String>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RunChatResponse {
+    pub answer: String,
 }
 
 #[async_trait]
 pub trait Chat: Send + Sync {
-    async fn run_chat(&self, request: ChatRequest) -> Result<String, ApplicationError>;
+    async fn run_chat(&self, request: RunChatRequest) -> Result<RunChatResponse, ApplicationError>;
 }
 
 #[derive(Clone, Debug)]
@@ -38,12 +46,13 @@ where
     T: AIChat,
     R: PromptManagerRepository,
 {
-    async fn run_chat(&self, request: ChatRequest) -> Result<String, ApplicationError> {
+    async fn run_chat(&self, request: RunChatRequest) -> Result<RunChatResponse, ApplicationError> {
         let settings = ChatSettings {
             id: 0,
             user_prompt: request.user_prompt.clone(),
             system_prompt: request.system_prompt.clone(),
             model: request.model.clone(),
+            max_tokens: request.max_tokens,
             temperature: request.temperature,
             response_format: request.response_format.clone(),
         };
@@ -53,7 +62,7 @@ where
         //     return Err(err);
         // }
         match res {
-            Ok(response) => Ok(response),
+            Ok(response) => Ok(RunChatResponse { answer: response }),
             Err(err) => {
                 log::error!("post_chat error: {}", err);
                 Err(err)
@@ -146,16 +155,18 @@ mod tests {
             ai_chat: Arc::new(mock_chat),
             prompt_manager_repository: Arc::new(mock_settings_repository),
         };
-        let request = ChatRequest {
+        let request = RunChatRequest {
+            run_id: 1,
             user_prompt: expected_prompt,
             system_prompt: "".to_string(),
             model: "".to_string(),
             temperature: 0.0,
+            max_tokens: None,
             response_format: None,
         };
         let result = chat_usecase.run_chat(request).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Test response");
+        assert_eq!(result.unwrap().answer, "Test response");
     }
 
     #[tokio::test]
@@ -175,11 +186,13 @@ mod tests {
             ai_chat: Arc::new(mock_chat),
             prompt_manager_repository: Arc::new(mock_settings_repository),
         };
-        let request = ChatRequest {
+        let request = RunChatRequest {
+            run_id: 1,
             user_prompt: expected_prompt,
             system_prompt: "".to_string(),
             model: "".to_string(),
             temperature: 0.0,
+            max_tokens: None,
             response_format: None,
         };
         let result = chat_usecase.run_chat(request).await;
@@ -188,6 +201,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_chat_error_create_settings() {
+        struct MockAIChatError {}
+        #[async_trait]
+        impl AIChat for MockAIChatError {
+            async fn do_chat(&self, _settings: &ChatSettings) -> Result<String, ApplicationError> {
+                Err(ApplicationError::OpenAPIError("open ai error".to_string()))
+            }
+        }
+
         struct MockSettingsRepositoryError {}
         #[async_trait]
         impl PromptManagerRepository for MockSettingsRepositoryError {
@@ -238,17 +259,19 @@ mod tests {
         }
 
         let expected_prompt = "Test prompt".to_string();
-        let mock_chat = MockAIChat {};
+        let mock_chat = MockAIChatError {};
         let mock_settings_repository = MockSettingsRepositoryError {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             prompt_manager_repository: Arc::new(mock_settings_repository),
         };
-        let request = ChatRequest {
+        let request = RunChatRequest {
+            run_id: 1,
             user_prompt: expected_prompt,
             system_prompt: "system prompt".to_string(),
             model: "test_model".to_string(),
             temperature: 0.0,
+            max_tokens: None,
             response_format: None,
         };
         let result = chat_usecase.run_chat(request).await;

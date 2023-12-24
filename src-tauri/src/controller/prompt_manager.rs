@@ -1,7 +1,7 @@
 use once_cell::sync::OnceCell;
 
 use crate::usecase::prompt_manager::PromptManager;
-use crate::{log_ipc, usecase};
+use crate::{convert_to_tauri_result, log_ipc, usecase};
 
 pub struct Controller<T>
 where
@@ -37,10 +37,7 @@ pub async fn get_prompt_manager(
     request: usecase::prompt_manager::GetPromptManagerRequest,
 ) -> Result<String, String> {
     let res = log_ipc!(get_controller().prompt_manager, get_prompt_manager, request);
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }
 
 /// プロンプトマネージャーを取得する
@@ -53,10 +50,7 @@ pub async fn get_all_prompt_managers(
         get_all_prompt_managers,
         request
     );
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }
 
 /// プロンプトマネージャーを保存する
@@ -69,10 +63,7 @@ pub async fn create_prompt_manager(
         create_prompt_manager,
         request
     );
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }
 
 /// プロンプトマネージャーを更新する
@@ -85,10 +76,7 @@ pub async fn update_prompt_manager(
         update_prompt_manager,
         request
     );
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }
 
 /// プロンプトマネージャーを削除する
@@ -101,8 +89,5 @@ pub async fn logical_delete_prompt_manager(
         logical_delete_prompt_managers,
         request
     );
-    match res {
-        Ok(res) => serde_json::to_string(&res).map_err(|err| err.to_string()),
-        Err(err) => Err(err.to_string()),
-    }
+    convert_to_tauri_result!(res)
 }

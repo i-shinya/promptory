@@ -6,7 +6,7 @@ export interface ButtonWithIconProps {
   text: string
   type: 'submit' | 'button' | 'reset'
   icon: string
-  color?: 'info' | 'warn'
+  color?: 'success' | 'info' | 'warn'
   onClick?: () => void
 }
 
@@ -19,6 +19,7 @@ const ButtonWithIcon = ({
   onClick,
 }: ButtonWithIconProps) => {
   const colorClasses = {
+    success: 'dark:bg-green-900',
     info: 'dark:bg-blue-900',
     warn: 'dark:bg-red-900',
     default: 'dark:bg-blue-900',
