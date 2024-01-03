@@ -40,7 +40,7 @@ pub async fn get_prompt_manager(
     convert_to_tauri_result!(res)
 }
 
-/// プロンプトマネージャーを取得する
+/// プロンプトマネージャーを全て取得する
 #[tauri::command]
 pub async fn get_all_prompt_managers(
     request: usecase::prompt_manager::GetAllPromptManagersRequest,

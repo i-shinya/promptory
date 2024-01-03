@@ -87,16 +87,10 @@ impl MigrationTrait for Migration {
                     .table(ComparingPromptManager::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(ComparingPromptManager::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
-                    .col(
                         ColumnDef::new(ComparingPromptManager::ManagerId)
                             .integer()
-                            .not_null(),
+                            .not_null()
+                            .primary_key(),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -125,24 +119,28 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(ComparingPromptSettings::ComparingManagerId)
+                        ColumnDef::new(ComparingPromptSettings::ManagerId)
                             .integer()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-comparing_prompt_settings-comparing_prompt_manager-id")
+                            .name("fk-comparing_prompt_settings-manager-id")
                             .from(
                                 ComparingPromptSettings::Table,
-                                ComparingPromptSettings::ComparingManagerId,
+                                ComparingPromptSettings::ManagerId,
                             )
-                            .to(ComparingPromptManager::Table, ComparingPromptManager::Id),
+                            .to(
+                                ComparingPromptManager::Table,
+                                ComparingPromptManager::ManagerId,
+                            ),
                     )
                     .col(
                         ColumnDef::new(ComparingPromptSettings::CurrentVersion)
                             .integer()
                             .not_null(),
                     )
+                    .col(ColumnDef::new(ComparingPromptSettings::DeletedAt).timestamp())
                     .to_owned(),
             )
             .await?;
@@ -299,7 +297,10 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-comparing_prompt_runs-comparing_prompt_manager-id")
                             .from(ComparingPromptRuns::Table, ComparingPromptRuns::ManagerId)
-                            .to(ComparingPromptManager::Table, ComparingPromptManager::Id),
+                            .to(
+                                ComparingPromptManager::Table,
+                                ComparingPromptManager::ManagerId,
+                            ),
                     )
                     .col(ColumnDef::new(PromptManager::ProviderType).string())
                     .col(
@@ -493,10 +494,10 @@ enum PromptManagerTag {
 #[derive(DeriveIden)]
 enum ComparingPromptManager {
     Table,
-    Id,
     ManagerId,
 }
 
+// TODO 関連テーブルを別PRで追加する
 #[derive(DeriveIden)]
 enum ComparingModelManager {
     Table,
@@ -508,8 +509,9 @@ enum ComparingModelManager {
 enum ComparingPromptSettings {
     Table,
     Id,
-    ComparingManagerId,
+    ManagerId,
     CurrentVersion, // 現在のバージョン、PromptSettingVersionsのバージョンと同じ値を設定する
+    DeletedAt,
 }
 
 #[derive(DeriveIden)]

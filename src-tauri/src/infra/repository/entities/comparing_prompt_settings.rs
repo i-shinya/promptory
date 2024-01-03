@@ -7,16 +7,17 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub comparing_manager_id: i32,
+    pub manager_id: i32,
     pub current_version: i32,
+    pub deleted_at: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::comparing_prompt_manager::Entity",
-        from = "Column::ComparingManagerId",
-        to = "super::comparing_prompt_manager::Column::Id",
+        from = "Column::ManagerId",
+        to = "super::comparing_prompt_manager::Column::ManagerId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
