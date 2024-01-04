@@ -1,3 +1,4 @@
-pub mod entities;
+pub mod comparing_prompt_setting;
+mod entities;
 pub mod prompt_manager;
-pub mod relation;
+mod relation;

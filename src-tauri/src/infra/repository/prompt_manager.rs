@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -11,7 +12,9 @@ use crate::domain::prompt_manager::{
     APIType, ActionType, PromptManagerModel, PromptManagerRepository,
 };
 use crate::infra::repository::entities::prelude::{PromptManager, PromptManagerTag, Tag};
-use crate::infra::repository::entities::{prompt_manager, prompt_manager_tag, tag};
+use crate::infra::repository::entities::{
+    comparing_prompt_manager, prompt_manager, prompt_manager_tag, tag,
+};
 
 #[derive(Clone, Debug)]
 pub struct PromptManagerRepositoryImpl {
@@ -106,14 +109,67 @@ impl PromptManagerRepository for PromptManagerRepositoryImpl {
         if prompt_manager.is_none() {
             return Err(ApplicationError::EmptyResult);
         }
-        let mut prompt_manager: prompt_manager::ActiveModel = prompt_manager.unwrap().into();
+        let prompt_manager = prompt_manager.unwrap();
+
+        // 既存のcomparing_XXX_managerを削除する
+        if let Some(action_type) = prompt_manager.clone().action_type {
+            let action_type = ActionType::from_str(&action_type).map_err(|_| {
+                ApplicationError::ParseError(
+                    "failed to convert string to enum ActionType".to_string(),
+                )
+            })?;
+            match action_type {
+                ActionType::ComparingPrompt => {
+                    let _ = comparing_prompt_manager::Entity::delete_many()
+                        .filter(comparing_prompt_manager::Column::ManagerId.eq(id))
+                        .exec(&txn)
+                        .await
+                        .map_err(ApplicationError::DBError)?;
+                }
+                ActionType::ComparingModel => {
+                    // TODO comparing_model_managerを削除する
+                    // let _ = comparing_model_manager::Entity::delete_many()
+                    //     .filter(comparing_model_manager::Column::ManagerId.eq(id))
+                    //     .exec(&txn)
+                    //     .await
+                    //     .map_err(ApplicationError::DBError)?;
+                }
+            }
+        }
+
+        let mut prompt_manager: prompt_manager::ActiveModel = prompt_manager.into();
         prompt_manager.title = ActiveValue::Set(title.to_string());
-        prompt_manager.action_type = ActiveValue::Set(action_type.map(|a| a.to_string()));
+        prompt_manager.action_type = ActiveValue::Set(action_type.clone().map(|a| a.to_string()));
         prompt_manager.api_type = ActiveValue::Set(api_type.map(|a| a.to_string()));
         let _ = prompt_manager
             .update(&txn)
             .await
             .map_err(ApplicationError::DBError)?;
+
+        // comparing_XXX_managerを作成する
+        if let Some(action_type) = action_type {
+            match action_type {
+                ActionType::ComparingPrompt => {
+                    let comparing_prompt_manager = comparing_prompt_manager::ActiveModel {
+                        manager_id: ActiveValue::Set(id),
+                    };
+                    let _ = comparing_prompt_manager
+                        .insert(&txn)
+                        .await
+                        .map_err(ApplicationError::DBError)?;
+                }
+                ActionType::ComparingModel => {
+                    // TODO comparing_model_managerを作成する
+                    // let comparing_model_manager = comparing_model_manager::ActiveModel {
+                    //     manager_id: ActiveValue::Set(id),
+                    // };
+                    // let _ = comparing_model_manager
+                    //     .insert(&txn)
+                    //     .await
+                    //     .map_err(ApplicationError::DBError)?;
+                }
+            }
+        }
 
         // prompt_manager_tagを更新する
         // 既存のtagに一致するものがあれば取得、なければtagを作成する
@@ -193,8 +249,12 @@ mod tests {
 
     use crate::common::thelper::db::setup_db;
     use crate::domain::prompt_manager::{APIType, ActionType, PromptManagerRepository};
-    use crate::infra::repository::entities::prelude::{PromptManager, PromptManagerTag, Tag};
-    use crate::infra::repository::entities::{prompt_manager, prompt_manager_tag, tag};
+    use crate::infra::repository::entities::prelude::{
+        ComparingPromptManager, PromptManager, PromptManagerTag, Tag,
+    };
+    use crate::infra::repository::entities::{
+        comparing_prompt_manager, prompt_manager, prompt_manager_tag, tag,
+    };
     use crate::infra::repository::prompt_manager::PromptManagerRepositoryImpl;
 
     #[tokio::test]
@@ -329,10 +389,11 @@ mod tests {
         let db = setup_db("test_update_prompt_manager").await;
         let repo = PromptManagerRepositoryImpl::new(db.clone());
 
+        // 事前データ
         let prompt_manager = prompt_manager::ActiveModel {
             id: Default::default(),
             title: ActiveValue::Set("test_title".to_string()),
-            action_type: ActiveValue::Set(None),
+            action_type: ActiveValue::Set(Some(ActionType::ComparingPrompt.to_string())),
             api_type: ActiveValue::Set(None),
             deleted_at: ActiveValue::Set(None),
         };
@@ -342,12 +403,20 @@ mod tests {
             .expect("Failed to insert prompt manager");
         let prompt_manager_id = inserted_prompt_manager.last_insert_id;
 
+        let comparing_prompt_manager = comparing_prompt_manager::ActiveModel {
+            manager_id: ActiveValue::Set(prompt_manager_id),
+        };
+        let _ = ComparingPromptManager::insert(comparing_prompt_manager)
+            .exec(db.as_ref())
+            .await
+            .expect("Failed to insert comparing_prompt_manager");
+
         // update_prompt_managerメソッドを呼び出し
         let result = repo
             .update_prompt_manager(
                 prompt_manager_id,
                 "test_title2",
-                Some(ActionType::ComparingModel),
+                Some(ActionType::ComparingPrompt),
                 Some(APIType::Chat),
                 vec!["test_tag".to_string()],
             )
@@ -355,16 +424,24 @@ mod tests {
         assert!(result.is_ok());
 
         // prompt_managerのassert
-        let prompt_managers = PromptManager::find_by_id(prompt_manager_id)
+        let prompt_manager = PromptManager::find_by_id(prompt_manager_id)
             .one(db.as_ref())
             .await
             .expect("Failed to insert prompt manager");
-        let settings = prompt_managers.unwrap();
-        assert_eq!(settings.title, "test_title2");
+        let prompt_manager = prompt_manager.unwrap();
+        assert_eq!(prompt_manager.title, "test_title2");
         assert_eq!(
-            settings.action_type,
-            Some(ActionType::ComparingModel.to_string())
+            prompt_manager.action_type,
+            Some(ActionType::ComparingPrompt.to_string())
         );
+        assert_eq!(prompt_manager.api_type, Some(APIType::Chat.to_string()));
+
+        // comparing_prompt_managerのassert
+        let comparing_prompt_manager = ComparingPromptManager::find_by_id(prompt_manager_id)
+            .one(db.as_ref())
+            .await
+            .expect("Failed to fetch comparing_prompt_manager");
+        assert!(comparing_prompt_manager.is_some());
 
         // prompt_manager_tagsとtagsテーブルのassertを追加
         let prompt_manager_tags = PromptManagerTag::find()

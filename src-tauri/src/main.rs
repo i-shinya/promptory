@@ -39,12 +39,18 @@ async fn main() {
     // infra層の初期化
     let openai_client = Arc::new(infra::core::openai::OpenAIClient::new());
     let chat = Arc::new(infra::chat::OpenAIChat::new(Arc::clone(&openai_client)));
-    let prompt_manager_repository =
-        Arc::new(infra::repository::prompt_manager::PromptManagerRepositoryImpl::new(db));
+    let prompt_manager_repository = Arc::new(
+        infra::repository::prompt_manager::PromptManagerRepositoryImpl::new(Arc::clone(&db)),
+    );
+    let comparing_prompt_setting_repository = Arc::new(
+        infra::repository::comparing_prompt_setting::ComparingPromptSettingRepositoryImpl::new(
+            Arc::clone(&db),
+        ),
+    );
     // usecase層の初期化
     let chat_usecase = usecase::comparing_prompt::ChatUsecase::new(
         Arc::clone(&chat),
-        Arc::clone(&prompt_manager_repository),
+        Arc::clone(&comparing_prompt_setting_repository),
     );
     let prompt_manager_usecase =
         usecase::prompt_manager::PromptManagerUsecase::new(Arc::clone(&prompt_manager_repository));
@@ -54,12 +60,12 @@ async fn main() {
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            controller::handler::greet,
             controller::prompt_manager::create_prompt_manager,
             controller::prompt_manager::update_prompt_manager,
             controller::prompt_manager::get_prompt_manager,
             controller::prompt_manager::get_all_prompt_managers,
             controller::prompt_manager::logical_delete_prompt_manager,
+            controller::comparing_prompt::add_comparing_prompt_setting,
             controller::comparing_prompt::run_comparing_prompt,
         ])
         .run(tauri::generate_context!())

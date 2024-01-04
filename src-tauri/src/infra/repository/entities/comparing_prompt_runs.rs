@@ -21,7 +21,7 @@ pub enum Relation {
     #[sea_orm(
         belongs_to = "super::comparing_prompt_manager::Entity",
         from = "Column::ManagerId",
-        to = "super::comparing_prompt_manager::Column::Id",
+        to = "super::comparing_prompt_manager::Column::ManagerId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
