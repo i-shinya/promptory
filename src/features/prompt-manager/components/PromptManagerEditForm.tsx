@@ -94,6 +94,9 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
     // recoilのpromptManagersAtomで一致するIDのものを更新する
     const newPromptManagers = [...promptManagers]
     const index = newPromptManagers.findIndex((item) => item.id === Number(id))
+    if (index === -1) {
+      return
+    }
     newPromptManagers[index] = promptManager
     setPromptManagers(newPromptManagers)
   }

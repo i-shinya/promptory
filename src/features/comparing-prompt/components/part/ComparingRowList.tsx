@@ -14,6 +14,9 @@ const ComparingRowList: React.FC<ComparingRowListProps> = ({
   const setSytemPrompt = (id: number, systemPrompt: string) => {
     const newSystemPrompts = [...comparingRows]
     const index = newSystemPrompts.findIndex((item) => item.id === id)
+    if (index === -1) {
+      return
+    }
     newSystemPrompts[index].systemPrompt = systemPrompt
     setComparingRows(newSystemPrompts)
   }
