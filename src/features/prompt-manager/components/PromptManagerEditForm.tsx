@@ -17,6 +17,9 @@ import {
 import { getPromptManagerAction, updatePromptManagerAction } from '../actions'
 import { toast } from 'react-toastify'
 import TagInput from './ui/TagInput'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import { PromptManager } from '../types'
+import { promptManagersAtom } from '@/store/atoms'
 
 const formSchema = z.object({
   title: z.string().min(1).max(100),
@@ -31,6 +34,11 @@ interface PromptManagerEditFormProps {
 const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
   id,
 }) => {
+  const promptManagers = useRecoilValue<PromptManager[]>(promptManagersAtom)
+  const setPromptManagers = useSetRecoilState<PromptManager[]>(
+    promptManagersAtom,
+  )
+
   const [tags, setTags] = useState<string[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -69,10 +77,25 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
         apiType: data.apiType,
         tags,
       })
+      refreshPromptManagersState({
+        id: Number(id),
+        title: data.title,
+        actionType: data.actionType!!, // ここではnullが入らないので!をつける
+        apiType: data.apiType!!, // ここではnullが入らないので!をつける
+        tags,
+      })
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
     }
+  }
+
+  const refreshPromptManagersState = async (promptManager: PromptManager) => {
+    // recoilのpromptManagersAtomで一致するIDのものを更新する
+    const newPromptManagers = [...promptManagers]
+    const index = newPromptManagers.findIndex((item) => item.id === Number(id))
+    newPromptManagers[index] = promptManager
+    setPromptManagers(newPromptManagers)
   }
 
   return (

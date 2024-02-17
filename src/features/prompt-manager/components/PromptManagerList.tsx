@@ -10,6 +10,8 @@ import {
 } from '../actions'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import { promptManagersAtom } from '@/store/atoms'
 
 export interface PromptManagerListProps {
   isVisibleNewManagerForm: boolean
@@ -22,7 +24,10 @@ const PromptManagerList = ({
 }: PromptManagerListProps) => {
   const navigate = useNavigate()
 
-  const [promptManagers, setPromptManagers] = useState<PromptManager[]>([])
+  const promptManagers = useRecoilValue<PromptManager[]>(promptManagersAtom)
+  const setPromptManagers = useSetRecoilState<PromptManager[]>(
+    promptManagersAtom,
+  )
 
   useEffect(() => {
     const fetchPromptManagers = async () => {
