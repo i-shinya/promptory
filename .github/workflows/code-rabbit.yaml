@@ -20,12 +20,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
 
 env:
-  GPT_MODEL: gpt-4-1106-preview
+  GPT_MODEL: gpt-4-turbo-preview
 
 jobs:
   review:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'rabbit-review') && github.event.issue.pull_request) ||　(github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review')) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
+    if: (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'rabbit-review') && github.event.issue.pull_request) || (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, 'rabbit-review')) || (github.event_name == 'pull_request' && !contains(github.event.pull_request.title, 'release') && !contains(github.event.pull_request.title, 'Release'))
     timeout-minutes: 15
     steps:
       - uses: coderabbitai/openai-pr-reviewer@latest
@@ -67,14 +67,14 @@ jobs:
               - 複雑性
               - 最適化
               - ベストプラクティス: DRY, SOLID, KISS
-            
+
             前提としてコンパイルやlintは行われ、コンパイルエラーは起きていないものとして不要な指摘は行わないようにしてください。
             些細なコードスタイルの問題や、コメント・ドキュメントの欠落についてはコメントしないでください。
             重要な問題を特定し、解決して全体的なコード品質を向上させることを目指してもらいたいが、細かい問題は意図的に無視してください。
-            
+
             ## アプリアーキテクチャ概要
             このアプリはOpenAI等のLLM APIを使用してプロンプトの検証を行う目的で実装しています
-            
+
             ### 言語
               - Rust
               - Typescript
@@ -89,7 +89,7 @@ jobs:
             ## 以下コメントは不要です
               - rustのコードでtauri::commandマクロを使用している関数の戻り値がResult<String, String>となっているとの指摘（tauriではResult<String, String>を返却する必要があります）
               - 実装が良いことやリファクタリングが問題ないことに関するコメント
-              - renameされたコードの影響範囲を確認するよう促す指摘
+              - 変数、関数のrenameやシグネチャ変更による影響範囲を確認するよう促す指摘
               - 関数やメソッドのシグネチャ変更の影響範囲を確認するよう促す指摘
               - オブジェクトや構造体のフィールドの追加・削除・変更の影響範囲を確認するよう促す指摘
               - TODOコメントに対する指摘
