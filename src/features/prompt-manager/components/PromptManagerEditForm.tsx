@@ -80,8 +80,8 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
       refreshPromptManagersState({
         id: Number(id),
         title: data.title,
-        actionType: data.actionType!!, // ここではnullが入らないので!をつける
-        apiType: data.apiType!!, // ここではnullが入らないので!をつける
+        actionType: data.actionType ?? null,
+        apiType: data.apiType ?? null,
         tags,
       })
       toast.info('Save Prompt Manager Success!')
