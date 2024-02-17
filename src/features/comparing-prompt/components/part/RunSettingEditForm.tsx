@@ -24,6 +24,7 @@ interface RunSettingEditFormProps {
 const formSchema = z.object({
   userPrompt: z.string().min(1).max(10000),
   model: z.string().min(1).max(100),
+  modelProvider: z.string().min(1).max(100),
   // input type=numberは文字列として値を持つが、coerceで数値に変換するっぽい
   temperature: z.coerce.number().min(0).max(1),
 })
@@ -36,6 +37,7 @@ const RunSettingEditForm: React.FC<RunSettingEditFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       userPrompt: '',
+      modelProvider: 'openai',
       model: 'gpt-4-1106-preview',
       temperature: 0,
     },
@@ -52,44 +54,55 @@ const RunSettingEditForm: React.FC<RunSettingEditFormProps> = ({
   }
 
   return (
-    <div className="h-full border-l border-solid border-zinc-400 pl-4">
+    <div className="flex flex-col h-full border-l border-solid border-zinc-400 pl-4 overflow-y-auto">
       <Form {...form}>
         <form
-          className="flex flex-col gap-4 h-full"
+          className="flex flex-col gap-2 grow overflow-y-auto"
           onSubmit={form.handleSubmit(run)}
         >
-          <div>
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Model</FormLabel>
-                  <FormControl>
-                    <TextInput {...field} placeholder="Enter Model." />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="modelProvider"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Model Provider</FormLabel>
+                <FormControl>
+                  <TextInput {...field} placeholder="Enter Model." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div>
-            <FormField
-              control={form.control}
-              name="temperature"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Temperature</FormLabel>
-                  <FormControl>
-                    <NumberInput {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="model"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Model</FormLabel>
+                <FormControl>
+                  <TextInput {...field} placeholder="Enter Model." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          <FormField
+            control={form.control}
+            name="temperature"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Temperature</FormLabel>
+                <FormControl>
+                  <NumberInput {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* <div> */}
           <div className="grow">
             <FormField
               control={form.control}

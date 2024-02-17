@@ -7,11 +7,13 @@ type Props = { children: ReactNode }
 
 const DefaultLayout = ({ children }: Props) => {
   return (
-    <div className="flex dark:bg-zinc-950">
-      <div className="w-72 h-screen dark:bg-zinc-950">
+    <div className="flex flex-row dark:bg-zinc-950 h-screen max-h-screen">
+      <div className="flex flex-col w-72 min-w-72 dark:bg-zinc-950">
         <SideMenu />
       </div>
-      <div className="flex-grow p-6 dark:bg-zinc-800">{children}</div>
+      <div className="flex flex-col p-2 grow dark:bg-zinc-800 h-full max-h-full">
+        {children}
+      </div>
       <ToastContainer
         position="top-right"
         autoClose={4000}

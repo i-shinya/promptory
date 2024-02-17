@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import ComparingResultRow from './ui/ComparingResltRow'
 import RunSettingEditForm from './part/RunSettingEditForm'
 import { ComparingPromtpRow, RunSettings } from '../types'
 import { toast } from 'react-toastify'
 import { RunChatRequest, runChatAction } from '../actions'
+import { Separator } from '@/components/ui/separator'
+import IconButton from '@/components/ui/IconButton'
+import ComparingRowList from './part/ComparingRowList'
 
 interface PromptManagerEditFormProps {
   managerId: string
@@ -12,27 +14,13 @@ interface PromptManagerEditFormProps {
 const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   managerId,
 }) => {
-  const [comparingRows, setComparingRows] = useState<ComparingPromtpRow[]>([
-    {
-      id: 1,
-      systemPrompt: '',
-      answer: '',
-    },
-  ])
+  const [comparingRows, setComparingRows] = useState<ComparingPromtpRow[]>([])
 
   // idが一致するrowのanswerを更新する
   const setAnswer = (id: number, answer: string) => {
     const newSystemPrompts = [...comparingRows]
     const index = newSystemPrompts.findIndex((item) => item.id === id)
     newSystemPrompts[index].answer = answer
-    setComparingRows(newSystemPrompts)
-  }
-
-  // idが一致するrowのsystemPromptを更新する
-  const setSytemPrompt = (id: number, systemPrompt: string) => {
-    const newSystemPrompts = [...comparingRows]
-    const index = newSystemPrompts.findIndex((item) => item.id === id)
-    newSystemPrompts[index].systemPrompt = systemPrompt
     setComparingRows(newSystemPrompts)
   }
 
@@ -56,22 +44,51 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
     )
   }
 
+  const addSystemPrompt = () => {
+    const newSystemPrompts = [...comparingRows]
+    const id =
+      newSystemPrompts.length > 0
+        ? Math.max(...newSystemPrompts.map((item) => item.id)) + 1
+        : 1
+    newSystemPrompts.push({
+      id: id,
+      systemPrompt: '',
+      answer: '',
+    })
+    setComparingRows(newSystemPrompts)
+  }
+
   return (
-    <div className="flex row h-full gap-4">
-      {/* この部分をコンポーネント化する */}
-      <div className="flex flex-col gap-4 grow overflow-y-auto w-2/5 h-full">
-        {comparingRows.map((item) => (
-          <ComparingResultRow
-            key={item.id}
-            answer={item.answer}
-            systemPrompt={item.systemPrompt}
-            setSystemPrompt={(systemPrompt) => {
-              setSytemPrompt(item.id, systemPrompt)
-            }}
+    <div
+      className="flex flex-row gap-4"
+      // TODO ここの値は適当なのでそのうち調整する
+      style={{
+        height: 'calc(100vh - 9rem)',
+        maxHeight: 'calc(100vh - 9rem)',
+      }}
+    >
+      <div className="flex flex-col grow w-2/5">
+        <div className="max-h-12">
+          <div className="flex flex-row">
+            <IconButton
+              className="mr-1"
+              icon="i-solar-add-circle-linear"
+              onClick={addSystemPrompt}
+            />
+            <span className="cursor-pointer" onClick={addSystemPrompt}>
+              Add Row
+            </span>
+          </div>
+          <Separator className="my-3" />
+        </div>
+        <div className="flex flex-col overflow-y-scroll">
+          <ComparingRowList
+            comparingRows={comparingRows}
+            setComparingRows={setComparingRows}
           />
-        ))}
+        </div>
       </div>
-      <div className="w-2/5 h-full">
+      <div className="flex flex-col w-1/3 overflow-y-scroll">
         <RunSettingEditForm managerId={managerId} runAction={run} />
       </div>
     </div>
