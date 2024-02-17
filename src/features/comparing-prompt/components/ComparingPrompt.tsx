@@ -20,6 +20,9 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   const setAnswer = (id: number, answer: string) => {
     const newSystemPrompts = [...comparingRows]
     const index = newSystemPrompts.findIndex((item) => item.id === id)
+    if (index === -1) {
+      return
+    }
     newSystemPrompts[index].answer = answer
     setComparingRows(newSystemPrompts)
   }
