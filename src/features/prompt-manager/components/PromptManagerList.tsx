@@ -53,6 +53,7 @@ const PromptManagerList = ({
         ...promptManagers,
         { id, title, actionType: null, apiType: null, tags: [] },
       ])
+      selectPromptManager(id)
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to create prompt manager: ${error}`)
@@ -73,7 +74,7 @@ const PromptManagerList = ({
   }
 
   return (
-    <div className="overflow-y-auto">
+    <>
       {promptManagers.length === 0 ? (
         <Card>
           <span className="font-bold">No prompts</span>
@@ -96,7 +97,7 @@ const PromptManagerList = ({
           onClickCancel={() => setIsVisibleNewManagerForm(false)}
         />
       )}
-    </div>
+    </>
   )
 }
 

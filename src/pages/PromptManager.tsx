@@ -7,11 +7,11 @@ const PromptManager = () => {
   const { id } = useParams()
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-full">
       {id ? (
         <>
           <PromptManagerEditForm id={id} />
-          <Separator className="my-4" />
+          <Separator className="my-3" />
           <ComparingPrompt managerId={id} />
         </>
       ) : (

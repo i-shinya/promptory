@@ -17,15 +17,17 @@ const SideMenu = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="flex flex-col h-full p-4">
       <SideMenuHeader
         onClickAdd={addTemporaryPromptManager}
         onClickConfig={goToConfigPage}
       />
-      <PromptManagerList
-        isVisibleNewManagerForm={isVisibleNewManagerForm}
-        setIsVisibleNewManagerForm={setIsVisibleNewManagerForm}
-      />
+      <div className="overflow-y-scroll">
+        <PromptManagerList
+          isVisibleNewManagerForm={isVisibleNewManagerForm}
+          setIsVisibleNewManagerForm={setIsVisibleNewManagerForm}
+        />
+      </div>
     </div>
   )
 }

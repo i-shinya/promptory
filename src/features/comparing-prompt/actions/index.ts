@@ -22,3 +22,20 @@ export const runChatAction = async (
   })) as string
   return JSON.parse(response) as RunChatResponse
 }
+
+export interface AddPromptRequest {
+  managerId: number
+}
+
+interface AddPromptResponse {
+  id: number
+}
+
+export const addComparingPromptSettingAction = async (
+  request: AddPromptRequest,
+): Promise<AddPromptResponse> => {
+  const response = (await invoke('add_comparing_prompt_setting', {
+    request,
+  })) as string
+  return JSON.parse(response) as AddPromptResponse
+}
