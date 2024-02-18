@@ -31,6 +31,15 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   }
 
   const run = async (setting: RunSettings) => {
+    if (!canExecutePrompts) {
+      toast.warn('Please select and save ActionTYpe.')
+      return
+    }
+    if (comparingRows.length === 0) {
+      toast.warn('Please add System Prompt.')
+      return
+    }
+
     setIsLoading(true)
     // TODO runを登録してrunIdを取得する
     const runId = 1
@@ -70,6 +79,10 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
       answer: '',
     })
     setComparingRows(newSystemPrompts)
+  }
+
+  if (!canExecutePrompts) {
+    return <div>Please select and save ActionType.</div>
   }
 
   return (
