@@ -32,7 +32,7 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
 
   const run = async (setting: RunSettings) => {
     if (!canExecutePrompts) {
-      toast.warn('Please select and save ActionTYpe.')
+      toast.warn('Please select and save ActionType.')
       return
     }
     if (comparingRows.length === 0) {
@@ -64,7 +64,7 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
 
   const addSystemPrompt = () => {
     if (!canExecutePrompts) {
-      toast.warn('Please select and save ActionTYpe.')
+      toast.warn('Please select and save ActionType.')
       return
     }
 

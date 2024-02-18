@@ -63,10 +63,9 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
           apiType: res.apiType ?? undefined,
         })
         setTags(res.tags)
+        handleCanExecutePrompts()
       } catch (error) {
         toast.error(`Failed to fetch prompt manager: ${error}`)
-      } finally {
-        handleCanExecutePrompts()
       }
     }
     fetchPromptManagers()
@@ -88,11 +87,10 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
         apiType: data.apiType ?? null,
         tags,
       })
+      handleCanExecutePrompts()
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
-    } finally {
-      handleCanExecutePrompts()
     }
   }
 
