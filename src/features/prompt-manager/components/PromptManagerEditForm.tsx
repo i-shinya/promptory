@@ -29,10 +29,12 @@ const formSchema = z.object({
 
 interface PromptManagerEditFormProps {
   id: string
+  setCanExecutePrompts: (enable: boolean) => void
 }
 
 const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
   id,
+  setCanExecutePrompts,
 }) => {
   const promptManagers = useRecoilValue<PromptManager[]>(promptManagersAtom)
   const setPromptManagers = useSetRecoilState<PromptManager[]>(
@@ -61,6 +63,7 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
           apiType: res.apiType ?? undefined,
         })
         setTags(res.tags)
+        handleCanExecutePrompts()
       } catch (error) {
         toast.error(`Failed to fetch prompt manager: ${error}`)
       }
@@ -84,10 +87,19 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
         apiType: data.apiType ?? null,
         tags,
       })
+      handleCanExecutePrompts()
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
     }
+  }
+
+  // canExecutePromptsを更新する
+  const handleCanExecutePrompts = () => {
+    // TODO その他機能が追加されたら条件を追加する
+    form.getValues().actionType
+      ? setCanExecutePrompts(true)
+      : setCanExecutePrompts(false)
   }
 
   const refreshPromptManagersState = async (promptManager: PromptManager) => {

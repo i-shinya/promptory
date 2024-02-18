@@ -9,10 +9,12 @@ import ComparingRowList from './part/ComparingRowList'
 
 interface PromptManagerEditFormProps {
   managerId: string
+  canExecutePrompts: boolean
 }
 
 const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   managerId,
+  canExecutePrompts,
 }) => {
   const [comparingRows, setComparingRows] = useState<ComparingPromtpRow[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -29,6 +31,15 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   }
 
   const run = async (setting: RunSettings) => {
+    if (!canExecutePrompts) {
+      toast.warn('Please select and save ActionType.')
+      return
+    }
+    if (comparingRows.length === 0) {
+      toast.warn('Please add System Prompt.')
+      return
+    }
+
     setIsLoading(true)
     // TODO runを登録してrunIdを取得する
     const runId = 1
@@ -52,6 +63,11 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   }
 
   const addSystemPrompt = () => {
+    if (!canExecutePrompts) {
+      toast.warn('Please select and save ActionType.')
+      return
+    }
+
     const newSystemPrompts = [...comparingRows]
     const id =
       newSystemPrompts.length > 0
@@ -63,6 +79,10 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
       answer: '',
     })
     setComparingRows(newSystemPrompts)
+  }
+
+  if (!canExecutePrompts) {
+    return <div>Please select and save ActionType.</div>
   }
 
   return (
