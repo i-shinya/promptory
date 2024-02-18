@@ -15,6 +15,7 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   managerId,
 }) => {
   const [comparingRows, setComparingRows] = useState<ComparingPromtpRow[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   // idが一致するrowのanswerを更新する
   const setAnswer = (id: number, answer: string) => {
@@ -28,7 +29,8 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   }
 
   const run = async (setting: RunSettings) => {
-    // runを登録してrunIdを取得する
+    setIsLoading(true)
+    // TODO runを登録してrunIdを取得する
     const runId = 1
     await Promise.all(
       comparingRows.map(async (item) => {
@@ -44,7 +46,9 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
           toast.error(`Failed to update prompt manager: ${error}`)
         }
       }),
-    )
+    ).finally(() => {
+      setIsLoading(false)
+    })
   }
 
   const addSystemPrompt = () => {
@@ -88,6 +92,7 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
           <ComparingRowList
             comparingRows={comparingRows}
             setComparingRows={setComparingRows}
+            isLoading={isLoading}
           />
         </div>
       </div>

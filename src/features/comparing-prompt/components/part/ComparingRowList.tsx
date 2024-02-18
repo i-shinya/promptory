@@ -4,11 +4,13 @@ import ComparingResultRow from '../ui/ComparingResultRow'
 interface ComparingRowListProps {
   comparingRows: ComparingPromtpRow[]
   setComparingRows: (comparingRows: ComparingPromtpRow[]) => void
+  isLoading: boolean
 }
 
 const ComparingRowList: React.FC<ComparingRowListProps> = ({
   comparingRows,
   setComparingRows,
+  isLoading,
 }) => {
   // idが一致するrowのsystemPromptを更新する
   const setSytemPrompt = (id: number, systemPrompt: string) => {
@@ -41,6 +43,7 @@ const ComparingRowList: React.FC<ComparingRowListProps> = ({
               deleteRow={() => {
                 deleteRow(item.id)
               }}
+              isLoading={isLoading}
             />
           ))}
         </>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Card from '../../../components/ui/Card'
 import { PromptManager } from '../types'
 import NewPromptManagerInputForm from './ui/NewPromptManagerInputForm'
