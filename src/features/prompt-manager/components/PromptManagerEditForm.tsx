@@ -66,9 +66,7 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
       } catch (error) {
         toast.error(`Failed to fetch prompt manager: ${error}`)
       } finally {
-        form.getValues().actionType
-          ? setCanExecutePrompts(true)
-          : setCanExecutePrompts(false)
+        handleCanExecutePrompts()
       }
     }
     fetchPromptManagers()
@@ -94,10 +92,16 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
     } finally {
-      form.getValues().actionType
-        ? setCanExecutePrompts(true)
-        : setCanExecutePrompts(false)
+      handleCanExecutePrompts()
     }
+  }
+
+  // canExecutePromptsを更新する
+  const handleCanExecutePrompts = () => {
+    // TODO その他機能が追加されたら条件を追加する
+    form.getValues().actionType
+      ? setCanExecutePrompts(true)
+      : setCanExecutePrompts(false)
   }
 
   const refreshPromptManagersState = async (promptManager: PromptManager) => {
