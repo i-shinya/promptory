@@ -9,10 +9,12 @@ import ComparingRowList from './part/ComparingRowList'
 
 interface PromptManagerEditFormProps {
   managerId: string
+  canExecutePrompts: boolean
 }
 
 const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   managerId,
+  canExecutePrompts,
 }) => {
   const [comparingRows, setComparingRows] = useState<ComparingPromtpRow[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -52,6 +54,11 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
   }
 
   const addSystemPrompt = () => {
+    if (!canExecutePrompts) {
+      toast.warn('Please select and save ActionTYpe.')
+      return
+    }
+
     const newSystemPrompts = [...comparingRows]
     const id =
       newSystemPrompts.length > 0

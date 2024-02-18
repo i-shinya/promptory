@@ -29,10 +29,12 @@ const formSchema = z.object({
 
 interface PromptManagerEditFormProps {
   id: string
+  setCanExecutePrompts: (enable: boolean) => void
 }
 
 const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
   id,
+  setCanExecutePrompts,
 }) => {
   const promptManagers = useRecoilValue<PromptManager[]>(promptManagersAtom)
   const setPromptManagers = useSetRecoilState<PromptManager[]>(
@@ -63,6 +65,10 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
         setTags(res.tags)
       } catch (error) {
         toast.error(`Failed to fetch prompt manager: ${error}`)
+      } finally {
+        form.getValues().actionType
+          ? setCanExecutePrompts(true)
+          : setCanExecutePrompts(false)
       }
     }
     fetchPromptManagers()
@@ -87,6 +93,10 @@ const PromptManagerEditForm: React.FC<PromptManagerEditFormProps> = ({
       toast.info('Save Prompt Manager Success!')
     } catch (error) {
       toast.error(`Failed to update prompt manager: ${error}`)
+    } finally {
+      form.getValues().actionType
+        ? setCanExecutePrompts(true)
+        : setCanExecutePrompts(false)
     }
   }
 
