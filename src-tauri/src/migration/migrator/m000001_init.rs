@@ -302,7 +302,11 @@ impl MigrationTrait for Migration {
                                 ComparingPromptManager::ManagerId,
                             ),
                     )
-                    .col(ColumnDef::new(PromptManager::ProviderType).string())
+                    .col(
+                        ColumnDef::new(ComparingPromptRuns::ProviderType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(ComparingPromptRuns::Model)
                             .string()
@@ -472,7 +476,6 @@ enum PromptManager {
     Title,
     ActionType,
     ApiType,
-    ProviderType,
     DeletedAt,
 }
 
@@ -542,6 +545,7 @@ enum ComparingPromptVisionSettingDetails {
 enum ComparingPromptRuns {
     Table,
     Id,
+    ProviderType,
     ManagerId,
     UserPrompt,
     Model,

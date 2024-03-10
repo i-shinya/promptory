@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::errors::ApplicationError;
 use crate::domain::chat::{AIChat, ChatSettings};
-use crate::domain::comparing_prompt_setting::ComparingPromptSettingRepository;
+use crate::domain::comparing_prompt::{
+    ComparingPromptRunRepository, ComparingPromptSettingRepository, ComparingPromptSettingRunModel,
+    ProviderType,
+};
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -49,11 +52,30 @@ pub struct ComparingPromptSettingItem {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveComparingPromptRunRequest {
+    pub manager_id: i32,
+    pub user_prompt: String,
+    pub provider_type: ProviderType,
+    pub model: String,
+    pub temperature: f64,
+    pub max_tokens: Option<i32>,
+    pub response_format: Option<String>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveComparingPromptRunResponse {
+    pub id: i32,
+}
+
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")] // jsonデコードする際にキャメルケースをスネークケースに変換する
 pub struct RunChatRequest {
     pub run_id: i32,
     pub user_prompt: String,
     pub system_prompt: String,
+    pub provider_type: ProviderType,
     pub model: String,
     pub temperature: f32,
     pub max_tokens: Option<u16>,
@@ -83,24 +105,32 @@ pub trait ComparingPrompt: Send + Sync {
         request: GetComparingPromptSettingsRequest,
     ) -> Result<GetComparingPromptSettingsResponse, ApplicationError>;
 
+    async fn save_run(
+        &self,
+        request: SaveComparingPromptRunRequest,
+    ) -> Result<SaveComparingPromptRunResponse, ApplicationError>;
+
     async fn run_chat(&self, request: RunChatRequest) -> Result<RunChatResponse, ApplicationError>;
 }
 
 #[derive(Clone, Debug)]
-pub struct ChatUsecase<T, R>
+pub struct ChatUsecase<T, R, U>
 where
     T: AIChat,
     R: ComparingPromptSettingRepository,
+    U: ComparingPromptRunRepository,
 {
     ai_chat: Arc<T>,
     comparing_prompt_setting_repository: Arc<R>,
+    comparing_prompt_run_repository: Arc<U>,
 }
 
 #[async_trait]
-impl<T, R> ComparingPrompt for ChatUsecase<T, R>
+impl<T, R, U> ComparingPrompt for ChatUsecase<T, R, U>
 where
     T: AIChat,
     R: ComparingPromptSettingRepository,
+    U: ComparingPromptRunRepository,
 {
     async fn add_comparing_prompt_setting(
         &self,
@@ -125,7 +155,7 @@ where
             id: setting.id,
             manager_id: setting.manager_id,
             version: setting.current_version,
-            system_prompt: "".to_string(),
+            system_prompt: "".to_string(), // TODO
         })
     }
 
@@ -149,6 +179,27 @@ where
         Ok(GetComparingPromptSettingsResponse { settings })
     }
 
+    async fn save_run(
+        &self,
+        request: SaveComparingPromptRunRequest,
+    ) -> Result<SaveComparingPromptRunResponse, ApplicationError> {
+        let run = ComparingPromptSettingRunModel {
+            id: 0,
+            manager_id: request.manager_id,
+            user_prompt: request.user_prompt,
+            provider_type: request.provider_type,
+            model: request.model.clone(),
+            temperature: request.temperature,
+            max_tokens: request.max_tokens,
+            response_format: request.response_format.clone(),
+        };
+        let run_id = self
+            .comparing_prompt_run_repository
+            .create_comparing_prompt_run(run)
+            .await?;
+        Ok(SaveComparingPromptRunResponse { id: run_id })
+    }
+
     async fn run_chat(&self, request: RunChatRequest) -> Result<RunChatResponse, ApplicationError> {
         let settings = ChatSettings {
             id: 0,
@@ -164,6 +215,7 @@ where
         //     log::error!("post_chat error: {}", err);
         //     return Err(err);
         // }
+        // TODO 結果を登録する
         match res {
             Ok(response) => Ok(RunChatResponse { answer: response }),
             Err(err) => {
@@ -174,15 +226,21 @@ where
     }
 }
 
-impl<T, R> ChatUsecase<T, R>
+impl<T, R, U> ChatUsecase<T, R, U>
 where
     T: AIChat,
     R: ComparingPromptSettingRepository,
+    U: ComparingPromptRunRepository,
 {
-    pub fn new(chat: Arc<T>, prompt_manager_repository: Arc<R>) -> Self {
+    pub fn new(
+        chat: Arc<T>,
+        comparing_prompt_setting_repository: Arc<R>,
+        comparing_prompt_run_repository: Arc<U>,
+    ) -> Self {
         ChatUsecase {
             ai_chat: chat,
-            comparing_prompt_setting_repository: prompt_manager_repository,
+            comparing_prompt_setting_repository,
+            comparing_prompt_run_repository,
         }
     }
 }
@@ -194,19 +252,46 @@ mod tests {
 
     use crate::common::errors::ApplicationError;
     use crate::domain::chat::ChatSettings;
-    use crate::domain::comparing_prompt_setting::ComparingPromptSettingModel;
+    use crate::domain::comparing_prompt::ComparingPromptSettingModel;
 
     use super::*;
 
-    // default mocking
+    /**
+     * Mocks
+     */
     struct MockAIChat {}
-    struct MockAIChatError {}
     struct MockComparingPromptSettingRepository {}
-    struct MockComparingPromptSettingRepositoryError {}
+    struct MockComparingPromptRunRepository {}
     #[async_trait]
     impl AIChat for MockAIChat {
         async fn do_chat(&self, _settings: &ChatSettings) -> Result<String, ApplicationError> {
             Ok("Test response".to_string())
+        }
+    }
+
+    #[async_trait]
+    impl ComparingPromptRunRepository for MockComparingPromptRunRepository {
+        async fn find_comparing_prompt_run_by_id(
+            &self,
+            id: i32,
+        ) -> Result<ComparingPromptSettingRunModel, ApplicationError> {
+            Ok(ComparingPromptSettingRunModel {
+                id,
+                manager_id: 1,
+                user_prompt: "test_user_prompt".to_string(),
+                provider_type: ProviderType::OpenAI,
+                model: "test_model".to_string(),
+                temperature: 0.0,
+                max_tokens: None,
+                response_format: None,
+            })
+        }
+
+        async fn create_comparing_prompt_run(
+            &self,
+            _param: ComparingPromptSettingRunModel,
+        ) -> Result<i32, ApplicationError> {
+            Ok(1)
         }
     }
 
@@ -233,12 +318,15 @@ mod tests {
 
         async fn create_comparing_prompt_setting(
             &self,
-            manager_id: i32,
+            _manager_id: i32,
         ) -> Result<i32, ApplicationError> {
             Ok(1)
         }
     }
 
+    struct MockAIChatError {}
+    struct MockComparingPromptSettingRepositoryError {}
+    struct MockComparingPromptRunRepositoryError {}
     #[async_trait]
     impl AIChat for MockAIChatError {
         async fn do_chat(&self, _settings: &ChatSettings) -> Result<String, ApplicationError> {
@@ -276,13 +364,39 @@ mod tests {
         }
     }
 
+    #[async_trait]
+    impl ComparingPromptRunRepository for MockComparingPromptRunRepositoryError {
+        async fn find_comparing_prompt_run_by_id(
+            &self,
+            _id: i32,
+        ) -> Result<ComparingPromptSettingRunModel, ApplicationError> {
+            Err(ApplicationError::DBError(DbErr::Type(
+                "db error".to_string(),
+            )))
+        }
+
+        async fn create_comparing_prompt_run(
+            &self,
+            _param: ComparingPromptSettingRunModel,
+        ) -> Result<i32, ApplicationError> {
+            Err(ApplicationError::DBError(DbErr::Type(
+                "db error".to_string(),
+            )))
+        }
+    }
+
+    /**
+     * Test cases
+     */
     #[tokio::test]
     async fn test_add_comparing_prompt_setting() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = AddComparingPromptSettingRequest { manager_id: 1 };
         let result = chat_usecase.add_comparing_prompt_setting(request).await;
@@ -293,9 +407,11 @@ mod tests {
     async fn test_add_comparing_prompt_setting_error() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepositoryError {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepositoryError {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = AddComparingPromptSettingRequest { manager_id: 1 };
         let result = chat_usecase.add_comparing_prompt_setting(request).await;
@@ -306,9 +422,11 @@ mod tests {
     async fn test_get_comparing_prompt_setting() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = GetComparingPromptSettingRequest { id: 1 };
         let result = chat_usecase.get_comparing_prompt_setting(request).await;
@@ -319,9 +437,11 @@ mod tests {
     async fn test_get_comparing_prompt_setting_error() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepositoryError {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepositoryError {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = GetComparingPromptSettingRequest { id: 1 };
         let result = chat_usecase.get_comparing_prompt_setting(request).await;
@@ -332,9 +452,11 @@ mod tests {
     async fn test_get_all_comparing_prompt_settings() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = GetComparingPromptSettingsRequest { manager_id: 1 };
         let result = chat_usecase
@@ -347,9 +469,11 @@ mod tests {
     async fn test_get_all_comparing_prompt_settings_error() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepositoryError {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepositoryError {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = GetComparingPromptSettingsRequest { manager_id: 1 };
         let result = chat_usecase
@@ -359,18 +483,66 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_chat() {
-        let expected_prompt = "Test prompt".to_string();
+    async fn test_save_run() {
         let mock_chat = MockAIChat {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
+        };
+        let request = SaveComparingPromptRunRequest {
+            manager_id: 1,
+            user_prompt: "".to_string(),
+            provider_type: ProviderType::OpenAI,
+            model: "".to_string(),
+            temperature: 0.0,
+            max_tokens: None,
+            response_format: None,
+        };
+        let result = chat_usecase.save_run(request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_save_run_error() {
+        let mock_chat = MockAIChat {};
+        let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepositoryError {};
+        let chat_usecase = ChatUsecase {
+            ai_chat: Arc::new(mock_chat),
+            comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
+        };
+        let request = SaveComparingPromptRunRequest {
+            manager_id: 1,
+            user_prompt: "test_user_prompt".to_string(),
+            provider_type: ProviderType::OpenAI,
+            model: "test_model".to_string(),
+            temperature: 0.0,
+            max_tokens: None,
+            response_format: None,
+        };
+        let result = chat_usecase.save_run(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_run_chat() {
+        let mock_chat = MockAIChat {};
+        let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
+        let chat_usecase = ChatUsecase {
+            ai_chat: Arc::new(mock_chat),
+            comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = RunChatRequest {
             run_id: 1,
-            user_prompt: expected_prompt,
-            system_prompt: "".to_string(),
+            user_prompt: "Test prompt".to_string(),
+            system_prompt: "test_system_prompt".to_string(),
+            provider_type: ProviderType::OpenAI,
             model: "".to_string(),
             temperature: 0.0,
             max_tokens: None,
@@ -394,15 +566,18 @@ mod tests {
         let expected_prompt = "Test prompt".to_string();
         let mock_chat = MockAIChatError {};
         let mock_comparing_prompt_setting_repository = MockComparingPromptSettingRepository {};
+        let mock_comparing_prompt_run_repository = MockComparingPromptRunRepository {};
         let chat_usecase = ChatUsecase {
             ai_chat: Arc::new(mock_chat),
             comparing_prompt_setting_repository: Arc::new(mock_comparing_prompt_setting_repository),
+            comparing_prompt_run_repository: Arc::new(mock_comparing_prompt_run_repository),
         };
         let request = RunChatRequest {
             run_id: 1,
             user_prompt: expected_prompt,
-            system_prompt: "".to_string(),
-            model: "".to_string(),
+            system_prompt: "test_system_prompt".to_string(),
+            provider_type: ProviderType::OpenAI,
+            model: "test_model".to_string(),
             temperature: 0.0,
             max_tokens: None,
             response_format: None,

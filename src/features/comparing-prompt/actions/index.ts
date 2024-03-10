@@ -4,6 +4,7 @@ export interface RunChatRequest {
   runId: number
   userPrompt: string
   systemPrompt: string
+  providerType: string
   model: string
   temperature: number
   maxToken?: number
@@ -38,4 +39,51 @@ export const addComparingPromptSettingAction = async (
     request,
   })) as string
   return JSON.parse(response) as AddPromptResponse
+}
+
+export interface GetComparingPromptSettingRequest {
+  managerId: number
+}
+
+interface GetComparingPromptSettingResponse {
+  settings: ComparingPromptSetting[]
+}
+
+interface ComparingPromptSetting {
+  id: number
+  managerId: number
+  version: number
+  systemPrompt: string
+}
+
+export const getComparingPromptSettingAction = async (
+  request: GetComparingPromptSettingRequest,
+): Promise<GetComparingPromptSettingResponse> => {
+  const response = (await invoke('get_all_comparing_prompt_settings', {
+    request,
+  })) as string
+  return JSON.parse(response) as GetComparingPromptSettingResponse
+}
+
+export interface SaveComparingPromptRunRequest {
+  managerId: number
+  userPrompt: string
+  providerType: string
+  model: string
+  temperature: number
+  maxToken?: number
+  responseFormat?: string
+}
+
+interface SaveComparingPromptRunResponse {
+  id: number
+}
+
+export const saveComparingPromptRunAction = async (
+  request: SaveComparingPromptRunRequest,
+): Promise<SaveComparingPromptRunResponse> => {
+  const response = (await invoke('save_comparing_prompt_run', {
+    request,
+  })) as string
+  return JSON.parse(response) as SaveComparingPromptRunResponse
 }
