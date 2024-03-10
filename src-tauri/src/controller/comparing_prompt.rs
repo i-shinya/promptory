@@ -70,6 +70,15 @@ pub async fn get_all_comparing_prompt_settings(
     convert_to_tauri_result!(res)
 }
 
+/// プロンプト比較実行を保存する
+#[tauri::command]
+pub async fn save_comparing_prompt_run(
+    request: usecase::comparing_prompt::SaveComparingPromptRunRequest,
+) -> Result<String, String> {
+    let res = log_ipc!(get_controller().comparing_prompt, save_run, request);
+    convert_to_tauri_result!(res)
+}
+
 /// プロンプト比較を実行する
 #[tauri::command]
 pub async fn run_comparing_prompt(

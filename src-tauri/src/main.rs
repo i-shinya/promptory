@@ -47,10 +47,16 @@ async fn main() {
             Arc::clone(&db),
         ),
     );
+    let comparing_prompt_run_repository = Arc::new(
+        infra::repository::comparing_prompt_run::ComparingPromptRunRepositoryImpl::new(Arc::clone(
+            &db,
+        )),
+    );
     // usecase層の初期化
     let chat_usecase = usecase::comparing_prompt::ChatUsecase::new(
         Arc::clone(&chat),
         Arc::clone(&comparing_prompt_setting_repository),
+        Arc::clone(&comparing_prompt_run_repository),
     );
     let prompt_manager_usecase =
         usecase::prompt_manager::PromptManagerUsecase::new(Arc::clone(&prompt_manager_repository));
@@ -66,6 +72,8 @@ async fn main() {
             controller::prompt_manager::get_all_prompt_managers,
             controller::prompt_manager::logical_delete_prompt_manager,
             controller::comparing_prompt::add_comparing_prompt_setting,
+            controller::comparing_prompt::get_all_comparing_prompt_settings,
+            controller::comparing_prompt::save_comparing_prompt_run,
             controller::comparing_prompt::run_comparing_prompt,
         ])
         .run(tauri::generate_context!())

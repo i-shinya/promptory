@@ -7,7 +7,7 @@ use sea_orm::{
 };
 
 use crate::common::errors::ApplicationError;
-use crate::domain::comparing_prompt_setting::{
+use crate::domain::comparing_prompt::{
     ComparingPromptSettingModel, ComparingPromptSettingRepository,
     ComparingPromptSettingVersionModel,
 };

@@ -23,8 +23,8 @@ interface RunSettingEditFormProps {
 
 const formSchema = z.object({
   userPrompt: z.string().min(1).max(10000),
+  modelProvider: z.enum(['OpenAI']),
   model: z.string().min(1).max(100),
-  modelProvider: z.string().min(1).max(100),
   // input type=numberは文字列として値を持つが、coerceで数値に変換するっぽい
   temperature: z.coerce.number().min(0).max(1),
 })
@@ -37,7 +37,7 @@ const RunSettingEditForm: React.FC<RunSettingEditFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       userPrompt: '',
-      modelProvider: 'openai',
+      modelProvider: 'OpenAI',
       model: 'gpt-4-1106-preview',
       temperature: 0,
     },
@@ -102,7 +102,6 @@ const RunSettingEditForm: React.FC<RunSettingEditFormProps> = ({
             )}
           />
 
-          {/* <div> */}
           <div className="grow">
             <FormField
               control={form.control}
@@ -126,13 +125,14 @@ const RunSettingEditForm: React.FC<RunSettingEditFormProps> = ({
           </div>
 
           <div className="flex justify-evenly">
+            {/* TODO そのうちsaveボタンを追加するかも
             <ButtonWithIcon
               text="Save"
               type="submit"
               icon="i-solar-add-folder-bold"
               color="info"
               className="text-2xl px-12"
-            />
+            /> */}
             <ButtonWithIcon
               text="Save & Run"
               type="submit"

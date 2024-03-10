@@ -2,7 +2,12 @@ import { useState } from 'react'
 import RunSettingEditForm from './part/RunSettingEditForm'
 import { ComparingPromtpRow, RunSettings } from '../types'
 import { toast } from 'react-toastify'
-import { RunChatRequest, runChatAction } from '../actions'
+import {
+  RunChatRequest,
+  SaveComparingPromptRunRequest,
+  runChatAction,
+  saveComparingPromptRunAction,
+} from '../actions'
 import { Separator } from '@/components/ui/separator'
 import IconButton from '@/components/ui/IconButton'
 import ComparingRowList from './part/ComparingRowList'
@@ -41,20 +46,36 @@ const ComparingPrompt: React.FC<PromptManagerEditFormProps> = ({
     }
 
     setIsLoading(true)
-    // TODO runを登録してrunIdを取得する
-    const runId = 1
+    const saveRequest: SaveComparingPromptRunRequest = {
+      managerId: Number(managerId),
+      userPrompt: setting.userPrompt,
+      providerType: 'OpenAI',
+      model: setting.model,
+      temperature: setting.temperature,
+    }
+    let runId = 0
+    try {
+      const saveResponse = await saveComparingPromptRunAction(saveRequest)
+      runId = saveResponse.id
+    } catch (error) {
+      setIsLoading(false)
+      toast.error(`Failed to saveComparingPromptRunAction: ${error}`)
+      return
+    }
+
     await Promise.all(
       comparingRows.map(async (item) => {
         try {
           const request: RunChatRequest = {
             runId: runId,
             systemPrompt: item.systemPrompt,
+            providerType: 'OpenAI',
             ...setting,
           }
           const response = await runChatAction(request)
           setAnswer(item.id, response.answer)
         } catch (error) {
-          toast.error(`Failed to update prompt manager: ${error}`)
+          toast.error(`Failed to runChatAction: ${error}`)
         }
       }),
     ).finally(() => {
